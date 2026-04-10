@@ -18,6 +18,8 @@ export function Messages() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showConversationList, setShowConversationList] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationSubscriptionRef = useRef<any>(null);
+  const messageSubscriptionRef = useRef<any>(null);
 
   // Load conversations
   useEffect(() => {
@@ -26,31 +28,45 @@ export function Messages() {
 
       try {
         const data = await messagesService.getConversations(user.id);
+        console.log('Raw conversation data:', data);
         setConversations(data);
 
         // Check if we need to open a conversation with a specific user
         const targetUserId = searchParams.get('userId');
         const context = searchParams.get('context'); // 'materials' or 'gig'
         
-        if (targetUserId) {
+        if (targetUserId && targetUserId !== user.id) {
           // Find existing conversation with this user
           const existingConv = data.find(c => {
-            const otherParticipantId = c.participant_1_id === user.id 
-              ? c.participant_2_id 
-              : c.participant_1_id;
+            const otherParticipantId = c.participant_1 === user.id 
+              ? c.participant_2 
+              : c.participant_1;
             return otherParticipantId === targetUserId;
           });
 
           if (existingConv) {
             setSelectedConv(existingConv);
+            setShowConversationList(false);
           } else {
             // Create new conversation
-            const newConv = await messagesService.getOrCreateConversation(user.id, targetUserId);
-            setConversations(prev => [newConv, ...prev]);
-            setSelectedConv(newConv);
+            try {
+              const newConv = await messagesService.getOrCreateConversation(user.id, targetUserId);
+              // Refresh conversations to get the new one with proper participant data
+              const updatedData = await messagesService.getConversations(user.id);
+              setConversations(updatedData);
+              
+              // Find the new conversation in the updated list
+              const createdConv = updatedData.find(c => c.id === newConv.id);
+              if (createdConv) {
+                setSelectedConv(createdConv);
+                setShowConversationList(false);
+              }
+            } catch (error) {
+              console.error('Error creating conversation:', error);
+            }
           }
           
-          // Pre-fill message for materials context (both new and existing conversations)
+          // Pre-fill message for different contexts
           if (context === 'materials') {
             const materialName = searchParams.get('materialName');
             const price = searchParams.get('price');
@@ -62,9 +78,20 @@ export function Messages() {
             if (location) contextMessage += ` in ${location}`;
             contextMessage += '. I have some questions about it.';
             
-            // Pre-fill the message input
             setNewMessage(contextMessage);
-            console.log('Pre-filled message:', contextMessage);
+          } else if (context === 'product') {
+            const productName = searchParams.get('productName');
+            const supplierName = searchParams.get('supplierName');
+            
+            let contextMessage = 'Hi';
+            if (supplierName && supplierName !== 'Business Supplier' && supplierName !== 'Supplier') {
+              contextMessage += ` ${supplierName}`;
+            }
+            contextMessage += '! I\'m interested in your';
+            if (productName) contextMessage += ` ${productName}`;
+            contextMessage += ' listing. Could you provide more details?';
+            
+            setNewMessage(contextMessage);
           }
         }
       } catch (error) {
@@ -78,7 +105,12 @@ export function Messages() {
 
     // Subscribe to conversation updates
     if (user?.id) {
-      const subscription = messagesService.subscribeToConversations(user.id, (conv) => {
+      // Clean up existing subscription
+      if (conversationSubscriptionRef.current) {
+        conversationSubscriptionRef.current.unsubscribe();
+      }
+
+      conversationSubscriptionRef.current = messagesService.subscribeToConversations(user.id, (conv) => {
         setConversations(prev => {
           const index = prev.findIndex(c => c.id === conv.id);
           if (index >= 0) {
@@ -93,10 +125,13 @@ export function Messages() {
       });
 
       return () => {
-        subscription.unsubscribe();
+        if (conversationSubscriptionRef.current) {
+          conversationSubscriptionRef.current.unsubscribe();
+          conversationSubscriptionRef.current = null;
+        }
       };
     }
-  }, [user, markAsRead, fetchConversations, searchParams]);
+  }, [user?.id, searchParams]);
 
   // Load messages when conversation is selected
   useEffect(() => {
@@ -126,7 +161,12 @@ export function Messages() {
 
     // Subscribe to new messages
     if (selectedConv) {
-      const subscription = messagesService.subscribeToMessages(selectedConv.id, (message) => {
+      // Clean up existing message subscription
+      if (messageSubscriptionRef.current) {
+        messageSubscriptionRef.current.unsubscribe();
+      }
+
+      messageSubscriptionRef.current = messagesService.subscribeToMessages(selectedConv.id, (message) => {
         setMessages(prev => [...prev, message]);
         
         // Mark as read if from other user
@@ -137,15 +177,30 @@ export function Messages() {
       });
 
       return () => {
-        subscription.unsubscribe();
+        if (messageSubscriptionRef.current) {
+          messageSubscriptionRef.current.unsubscribe();
+          messageSubscriptionRef.current = null;
+        }
       };
     }
-  }, [selectedConv, user, markAsRead, fetchConversations]);
+  }, [selectedConv?.id, user?.id, markAsRead, fetchConversations]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      if (conversationSubscriptionRef.current) {
+        conversationSubscriptionRef.current.unsubscribe();
+      }
+      if (messageSubscriptionRef.current) {
+        messageSubscriptionRef.current.unsubscribe();
+      }
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!selectedConv || !newMessage.trim() || !user?.id) return;
@@ -155,9 +210,15 @@ export function Messages() {
       await messagesService.sendMessage(selectedConv.id, user.id, newMessage.trim());
       setNewMessage('');
       
-      // Reload conversations to update the list
+      // Reload conversations to update the list with new last message
       const updatedConvs = await messagesService.getConversations(user.id);
       setConversations(updatedConvs);
+      
+      // Update the selected conversation with the latest data
+      const updatedSelectedConv = updatedConvs.find(c => c.id === selectedConv.id);
+      if (updatedSelectedConv) {
+        setSelectedConv(updatedSelectedConv);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -208,6 +269,14 @@ export function Messages() {
               conversations.map((conv) => {
                 const otherParticipant = getOtherParticipant(conv);
                 const isSelected = selectedConv?.id === conv.id;
+                
+                console.log('Conversation data:', {
+                  id: conv.id,
+                  last_message: conv.last_message,
+                  last_message_at: conv.last_message_at,
+                  participant_1: conv.participant_1,
+                  participant_2: conv.participant_2
+                });
                 
                 return (
                   <button

@@ -1,47 +1,45 @@
 import { Link } from 'react-router-dom';
-import { Card } from '@/components/ui';
+import { ArrowLeft } from '@/lib/icons';
 
 export function TermsOfService() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
-          <Link to="/" className="text-blue-600 hover:text-blue-700 flex items-center gap-2 mb-4">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+          <Link to="/" className="text-orange-600 hover:text-orange-700 flex items-center gap-2 mb-4">
+            <ArrowLeft className="w-5 h-5" />
             Back to Home
           </Link>
-          <h1 className="text-4xl font-bold text-gray-900">Terms of Service</h1>
-          <p className="text-gray-600 mt-2">Last Updated: February 11, 2026</p>
+          <h1 className="text-4xl font-bold text-neutral-900">Terms of Service</h1>
+          <p className="text-neutral-600 mt-2">Last Updated: February 11, 2026</p>
         </div>
 
-        <Card className="p-8 space-y-8">
+        <div className="bg-white rounded-lg border border-neutral-200 p-8 space-y-8">
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Agreement to Terms</h2>
-            <p className="text-gray-700 leading-relaxed mb-4">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-4">1. Agreement to Terms</h2>
+            <p className="text-neutral-700 leading-relaxed mb-4">
               By accessing or using Cerka ("Platform", "Service", "we", "us", or "our"), you agree to be bound by these Terms of Service and all applicable laws and regulations of the Republic of Rwanda. If you do not agree with any of these terms, you are prohibited from using this Platform.
             </p>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-neutral-700 leading-relaxed">
               These Terms constitute a legally binding agreement between you and Cerka, operating under the laws of Rwanda.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Platform Services</h2>
-            <p className="text-gray-700 leading-relaxed mb-4">
+            <h2 className="text-2xl font-bold text-neutral-900 mb-4">2. Platform Services</h2>
+            <p className="text-neutral-700 leading-relaxed mb-4">
               Cerka provides two primary services:
             </p>
             <div className="ml-6 space-y-3">
               <div>
-                <h3 className="font-semibold text-gray-900">2.1 Gig Work Marketplace</h3>
-                <p className="text-gray-700">
+                <h3 className="font-semibold text-neutral-900">2.1 Gig Work Marketplace</h3>
+                <p className="text-neutral-700">
                   A platform connecting workers with businesses for short-term employment opportunities, shift work, and temporary assignments within Rwanda.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">2.2 Materials Marketplace</h3>
-                <p className="text-gray-700">
+                <h3 className="font-semibold text-neutral-900">2.2 Materials Marketplace</h3>
+                <p className="text-neutral-700">
                   A marketplace for buying and selling construction materials, agricultural products, food commodities, electronics, vehicles, and other goods, including price intelligence and market data services.
                 </p>
               </div>
@@ -50,7 +48,7 @@ export function TermsOfService() {
 
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">3. User Eligibility</h2>
-            <div className="space-y-3 text-gray-700">
+            <div className="space-y-3 text-neutral-700">
               <p>To use this Platform, you must:</p>
               <ul className="list-disc ml-6 space-y-2">
                 <li>Be at least 18 years of age</li>
@@ -66,8 +64,8 @@ export function TermsOfService() {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">4. User Accounts and Verification</h2>
             <div className="space-y-3">
               <div>
-                <h3 className="font-semibold text-gray-900">4.1 Account Registration</h3>
-                <p className="text-gray-700">
+                <h3 className="font-semibold text-neutral-900">4.1 Account Registration</h3>
+                <p className="text-neutral-700">
                   You must create an account to access certain features. You are responsible for maintaining the confidentiality of your account information and for all activities under your account.
                 </p>
               </div>
@@ -271,7 +269,7 @@ export function TermsOfService() {
             <p className="text-gray-700 mb-3">
               For questions about these Terms, contact us at:
             </p>
-            <div className="bg-gray-50 p-4 rounded-lg text-gray-700">
+            <div className="bg-neutral-50 p-4 rounded-lg text-neutral-700">
               <p className="font-semibold">Cerka Platform</p>
               <p>Email: legal@cerka.rw</p>
               <p>Support: support@cerka.rw</p>
@@ -280,14 +278,14 @@ export function TermsOfService() {
           </section>
 
           <section className="border-t pt-6">
-            <p className="text-sm text-gray-600 italic">
+            <p className="text-sm text-neutral-600 italic">
               By using Cerka, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and all applicable laws of the Republic of Rwanda.
             </p>
           </section>
-        </Card>
+        </div>
 
         <div className="mt-8 text-center">
-          <Link to="/" className="text-blue-600 hover:text-blue-700">
+          <Link to="/" className="text-orange-600 hover:text-orange-700">
             Return to Home
           </Link>
         </div>

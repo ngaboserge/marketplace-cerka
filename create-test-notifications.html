@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Test Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Creating Test Notifications</h1>
+    <div id="output"></div>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function createTestNotifications() {
+            try {
+                log('Creating test notifications...');
+                
+                // Get a user ID to create notifications for
+                const { data: profiles, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .limit(1);
+                
+                if (profilesError || !profiles || profiles.length === 0) {
+                    log('No profiles found: ' + JSON.stringify(profilesError));
+                    return;
+                }
+                
+                const userId = profiles[0].id;
+                log('Creating notifications for user: ' + userId);
+                
+                const testNotifications = [
+                    {
+                        user_id: userId,
+                        type: 'message',
+                        title: 'New Message Received',
+                        message: 'You have received a new message from a supplier about your quote request.',
+                        data: { link: '/messages' }
+                    },
+                    {
+                        user_id: userId,
+                        type: 'quote_request',
+                        title: 'Quote Request Submitted',
+                        message: 'Your quote request for construction materials has been submitted successfully.',
+                        data: { link: '/buyers/quotes' }
+                    },
+                    {
+                        user_id: userId,
+                        type: 'price_alert',
+                        title: 'Price Drop Alert',
+                        message: 'The price for cement has dropped by 15% in your area.',
+                        data: { link: '/materials/trends' }
+                    },
+                    {
+                        user_id: userId,
+                        type: 'system',
+                        title: 'Welcome to RwandaMarket',
+                        message: 'Welcome to our marketplace! Start exploring quality products from verified suppliers.',
+                        data: { link: '/buyers/search' }
+                    }
+                ];
+                
+                for (const notification of testNotifications) {
+                    const { error } = await supabase.rpc('exec_sql', {
+                        sql: `
+                            INSERT INTO public.notifications (user_id, type, title, message, data)
+                            VALUES ('${notification.user_id}', '${notification.type}', '${notification.title}', '${notification.message}', '${JSON.stringify(notification.data)}');
+                        `
+                    });
+                    
+                    if (error) {
+                        log('Error creating notification: ' + JSON.stringify(error));
+                    } else {
+                        log('✓ Created: ' + notification.title);
+                    }
+                }
+                
+                log('🎉 Test notifications created successfully!');
+                
+            } catch (error) {
+                log('Failed to create test notifications: ' + error.message);
+            }
+        }
+
+        createTestNotifications();
+    </script>
+</body>
+</html>

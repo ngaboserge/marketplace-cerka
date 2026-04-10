@@ -3,9 +3,9 @@ import { persist } from 'zustand/middleware';
 import { supabase, supabaseUntyped, isSupabaseConfigured } from '@/lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-type UserRole = 'worker' | 'employer' | 'admin';
+type UserRole = 'buyer' | 'supplier' | 'contributor' | 'admin';
 
-type PlatformType = 'gigwork' | 'marketplace' | 'both';
+type PlatformType = 'marketplace';
 
 interface UserProfile {
   id: string;
@@ -15,11 +15,7 @@ interface UserProfile {
   avatar_url?: string;
   platform_preference?: PlatformType;
   platform_selected_at?: string;
-  // Worker specific
-  reliability_score?: number;
-  worker_status?: string;
-  total_shifts_completed?: number;
-  // Employer specific
+  // Supplier specific
   company_name?: string;
   verified?: boolean;
 }
@@ -112,66 +108,41 @@ export const useAuthStore = create<AuthState>()(
                 id: profileData.id,
                 email: profileData.email || session.user.email || '',
                 role: profileData.role,
-                name: profileData.business_name || 'User', // Use business_name from profiles table
+                name: profileData.business_name || profileData.name || 'User', // Try business_name first, fallback to name
                 avatar_url: profileData.avatar_url, // Include avatar_url
-                platform_preference: profileData.platform_preference || 'both',
+                platform_preference: profileData.platform_preference || 'marketplace',
                 platform_selected_at: profileData.platform_selected_at,
               };
 
               // Fetch role-specific profile for additional data
-              if (profileData.role === 'worker') {
-                const { data: workerProfile, error: workerError } = await supabaseUntyped
-                  .from('worker_profiles')
+              if (profileData.role === 'supplier') {
+                const { data: supplierProfile, error: supplierError } = await supabaseUntyped
+                  .from('supplier_profiles')
                   .select('*')
                   .eq('user_id', profileData.id)
                   .maybeSingle();
 
-                if (workerError) {
-                  console.error('Worker profile fetch error:', workerError);
+                if (supplierError) {
+                  console.error('Supplier profile fetch error:', supplierError);
                 }
 
-                if (workerProfile) {
-                  const wp = workerProfile as any;
-                  // Override name with full name from worker profile if available
-                  if (wp.first_name && wp.last_name) {
-                    userProfile.name = `${wp.first_name} ${wp.last_name}`;
+                if (supplierProfile) {
+                  const sp = supplierProfile as any;
+                  // Override name with company name from supplier profile if available
+                  if (sp.company_name) {
+                    userProfile.name = sp.company_name;
                   }
                   userProfile = {
                     ...userProfile,
-                    avatar_url: profileData.avatar_url, // Explicitly preserve avatar_url
-                    reliability_score: wp.reliability_score,
-                    worker_status: wp.worker_status,
-                    total_shifts_completed: wp.total_shifts_completed,
-                  };
-                }
-              } else if (profileData.role === 'employer') {
-                const { data: employerProfile, error: employerError } = await supabaseUntyped
-                  .from('employer_profiles')
-                  .select('*')
-                  .eq('user_id', profileData.id)
-                  .maybeSingle();
-
-                if (employerError) {
-                  console.error('Employer profile fetch error:', employerError);
-                }
-
-                if (employerProfile) {
-                  const ep = employerProfile as any;
-                  // Override name with company name from employer profile if available
-                  if (ep.company_name) {
-                    userProfile.name = ep.company_name;
-                  }
-                  userProfile = {
-                    ...userProfile,
-                    company_name: ep.company_name,
-                    verified: ep.verified,
+                    company_name: sp.company_name,
+                    verified: sp.verified,
                   };
                 }
               } else if (profileData.role === 'admin') {
-                // Admin users use business_name from profiles or default
+                // Admin users use business_name from profiles or name, or default
                 userProfile = {
                   ...userProfile,
-                  name: profileData.business_name || 'Admin User',
+                  name: profileData.business_name || profileData.name || 'Admin User',
                 };
               }
 
@@ -242,7 +213,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          // 1. Create auth user
+          // 1. Create auth user without metadata (simpler approach)
           const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
             password,
@@ -258,66 +229,46 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, error: 'Registration failed' };
           }
 
-          // 2. Create profile with business_name
+          // 2. Create profile manually
           const { error: profileError } = await supabaseUntyped
             .from('profiles')
             .insert({
               id: authData.user.id,
-              role: role,
               email: email,
+              role: role,
+              name: name,
               business_name: role === 'employer' ? (companyName || name) : name,
             });
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
-            set({ isLoading: false, error: profileError.message });
-            return { success: false, error: profileError.message };
+            set({ isLoading: false, error: `Profile creation failed: ${profileError.message}` });
+            return { success: false, error: `Profile creation failed: ${profileError.message}` };
           }
 
-          // 3. Create role-specific profile
-          if (role === 'worker') {
-            const nameParts = name.split(' ');
-            const firstName = nameParts[0] || name;
-            const lastName = nameParts.slice(1).join(' ') || '';
-
-            const { error: workerError } = await supabaseUntyped
-              .from('worker_profiles')
-              .insert({
-                user_id: authData.user.id,
-                first_name: firstName,
-                last_name: lastName,
-              });
-
-            if (workerError) {
-              console.error('Worker profile creation error:', workerError);
-              set({ isLoading: false, error: workerError.message });
-              return { success: false, error: workerError.message };
-            }
-          } else if (role === 'employer') {
-            const { error: employerError } = await supabaseUntyped
-              .from('employer_profiles')
+          // 3. Create role-specific profile if needed
+          if (role === 'supplier') {
+            const { error: supplierError } = await supabaseUntyped
+              .from('supplier_profiles')
               .insert({
                 user_id: authData.user.id,
                 company_name: companyName || name,
                 company_type: 'other',
               });
 
-            if (employerError) {
-              console.error('Employer profile creation error:', employerError);
-              set({ isLoading: false, error: employerError.message });
-              return { success: false, error: employerError.message };
+            if (supplierError) {
+              console.error('Supplier profile creation error:', supplierError);
+              // Don't fail registration if supplier profile creation fails
             }
           }
 
-          // 4. Wait a moment for database to sync
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          // 5. Initialize user state
+          // 4. Initialize user state
           await get().initialize();
           
           set({ isLoading: false });
           return { success: true };
         } catch (error: any) {
+          console.error('Registration error:', error);
           set({ isLoading: false, error: error.message });
           return { success: false, error: error.message };
         }

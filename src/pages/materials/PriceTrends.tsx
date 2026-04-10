@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMaterialsStore, useSuppliersStore } from '../../store';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { formatCurrency } from '../../lib/currency';
-import { Search, TrendingUp, Minus, MapPin, Package, BarChart, Calendar, DollarSign, Brain, Printer } from '../../lib/icons';
+import { Search, TrendingUp, Minus, MapPin, Package, BarChart, Calendar, DollarSign, Brain, Printer, ArrowLeft, MessageCircle } from '../../lib/icons';
 import { ComposedPriceChart, VolumeBarChart, Sparkline, PriceComparisonChart } from '../../components/charts';
 
 interface MaterialStats {
@@ -170,7 +168,7 @@ export default function PriceTrends() {
   };
 
   const getTrendIcon = (spread: number) => {
-    if (spread < 10) return <Minus className="w-4 h-4 text-gray-400" />;
+    if (spread < 10) return <Minus className="w-4 h-4 text-neutral-400" />;
     if (spread < 30) return <TrendingUp className="w-4 h-4 text-yellow-500" />;
     return <TrendingUp className="w-4 h-4 text-red-500" />;
   };
@@ -282,135 +280,128 @@ export default function PriceTrends() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Back to Home Button */}
-      <button 
-        onClick={() => navigate('/home')} 
-        className="mb-4 inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-      >
-        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        {t('materials.trends.backToHome')}
-      </button>
+    <div className="min-h-screen bg-neutral-50">
+      <div className="container-marketplace section-padding">
+        {/* Back to Home Button */}
+        <button 
+          onClick={() => navigate('/home')} 
+          className="btn-secondary mb-6 inline-flex items-center gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {t('materials.trends.backToHome')}
+        </button>
 
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {t('materials.trends.title')}
-              </h1>
-              <Badge variant="info" className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </Badge>
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  {t('materials.trends.title')}
+                </h1>
+                <div className="badge badge-primary flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+              <p className="text-lg text-neutral-600">
+                {t('materials.trends.subtitle', { materials: totalMaterials, suppliers: totalSuppliers })}
+              </p>
             </div>
-            <p className="text-lg text-gray-600">
-              {t('materials.trends.subtitle', { materials: totalMaterials, suppliers: totalSuppliers })}
-            </p>
-          </div>
-          
-          {/* Export Actions */}
-          <div className="flex gap-2 print:hidden">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowCharts(!showCharts)}
-              className="flex items-center gap-2"
-            >
-              <BarChart className="w-4 h-4" />
-              {showCharts ? t('materials.trends.hideCharts') : t('materials.trends.showCharts')}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={exportToCSV}
-              className="flex items-center gap-2"
-            >
-              <Package className="w-4 h-4" />
-              {t('materials.trends.exportCSV')}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handlePrint}
-              className="flex items-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              {t('materials.trends.print')}
-            </Button>
+            
+            {/* Export Actions */}
+            <div className="flex gap-2 print:hidden">
+              <button
+                onClick={() => setShowCharts(!showCharts)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <BarChart className="w-4 h-4" />
+                {showCharts ? t('materials.trends.hideCharts') : t('materials.trends.showCharts')}
+              </button>
+              <button
+                onClick={exportToCSV}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <Package className="w-4 h-4" />
+                {t('materials.trends.exportCSV')}
+              </button>
+              <button
+                onClick={handlePrint}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                {t('materials.trends.print')}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Market Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-blue-500 rounded-lg">
-              <Package className="w-6 h-6 text-white" />
+        {/* Market Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-orange-500 rounded-lg">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-orange-600" />
             </div>
-            <TrendingUp className="w-5 h-5 text-blue-600" />
+            <p className="text-sm font-medium text-orange-700 mb-1">{t('materials.trends.totalMaterials')}</p>
+            <p className="text-3xl font-bold text-orange-900">{totalMaterials}</p>
+            <p className="text-xs text-orange-600 mt-1">{t('materials.trends.trackedRealTime')}</p>
           </div>
-          <p className="text-sm font-medium text-blue-700 mb-1">{t('materials.trends.totalMaterials')}</p>
-          <p className="text-3xl font-bold text-blue-900">{totalMaterials}</p>
-          <p className="text-xs text-blue-600 mt-1">{t('materials.trends.trackedRealTime')}</p>
-        </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-green-500 rounded-lg">
-              <MapPin className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-green-500 rounded-lg">
+                <MapPin className="w-6 h-6 text-white" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-600" />
             </div>
-            <TrendingUp className="w-5 h-5 text-green-600" />
+            <p className="text-sm font-medium text-green-700 mb-1">{t('materials.trends.activeSuppliers')}</p>
+            <p className="text-3xl font-bold text-green-900">{totalSuppliers}</p>
+            <p className="text-xs text-green-600 mt-1">{t('materials.trends.verifiedListings')}</p>
           </div>
-          <p className="text-sm font-medium text-green-700 mb-1">{t('materials.trends.activeSuppliers')}</p>
-          <p className="text-3xl font-bold text-green-900">{totalSuppliers}</p>
-          <p className="text-xs text-green-600 mt-1">{t('materials.trends.verifiedListings')}</p>
-        </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-yellow-500 rounded-lg">
-              <BarChart className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-yellow-500 rounded-lg">
+                <BarChart className="w-6 h-6 text-white" />
+              </div>
+              {avgVolatility < 15 ? <Minus className="w-5 h-5 text-yellow-600" /> : <TrendingUp className="w-5 h-5 text-yellow-600" />}
             </div>
-            {avgVolatility < 15 ? <Minus className="w-5 h-5 text-yellow-600" /> : <TrendingUp className="w-5 h-5 text-yellow-600" />}
+            <p className="text-sm font-medium text-yellow-700 mb-1">{t('materials.trends.avgVolatility')}</p>
+            <p className="text-3xl font-bold text-yellow-900">{avgVolatility.toFixed(1)}%</p>
+            <p className="text-xs text-yellow-600 mt-1">
+              {avgVolatility < 10 ? t('materials.trends.stableMarket') : avgVolatility < 25 ? t('materials.trends.moderateVariation') : t('materials.trends.highVariation')}
+            </p>
           </div>
-          <p className="text-sm font-medium text-yellow-700 mb-1">{t('materials.trends.avgVolatility')}</p>
-          <p className="text-3xl font-bold text-yellow-900">{avgVolatility.toFixed(1)}%</p>
-          <p className="text-xs text-yellow-600 mt-1">
-            {avgVolatility < 10 ? t('materials.trends.stableMarket') : avgVolatility < 25 ? t('materials.trends.moderateVariation') : t('materials.trends.highVariation')}
-          </p>
-        </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-3 bg-purple-500 rounded-lg">
-              <DollarSign className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-lg border border-neutral-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-3 bg-purple-500 rounded-lg">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-purple-600" />
             </div>
-            <TrendingUp className="w-5 h-5 text-purple-600" />
+            <p className="text-sm font-medium text-purple-700 mb-1">{t('materials.trends.marketCoverage')}</p>
+            <p className="text-3xl font-bold text-purple-900">{sectors.length}</p>
+            <p className="text-xs text-purple-600 mt-1">{t('materials.trends.economicSectors')}</p>
           </div>
-          <p className="text-sm font-medium text-purple-700 mb-1">{t('materials.trends.marketCoverage')}</p>
-          <p className="text-3xl font-bold text-purple-900">{sectors.length}</p>
-          <p className="text-xs text-purple-600 mt-1">{t('materials.trends.economicSectors')}</p>
-        </Card>
-      </div>
+        </div>
 
       {/* Charts Section */}
       {showCharts && stats.length > 0 && (
         <div className="space-y-6 mb-8">
           {/* Material Selector for Detailed Charts */}
-          <Card className="p-4 bg-blue-50 border-blue-200">
+          <div className="bg-white rounded-lg border border-neutral-200 p-4">
             <div className="flex items-center gap-4">
-              <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+              <label className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
                 Select Material for Detailed Charts:
               </label>
               <select
                 value={selectedMaterialForChart}
                 onChange={(e) => setSelectedMaterialForChart(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
               >
                 <option value="">Top Material (Most Supplied)</option>
                 {stats.map(stat => (
@@ -420,39 +411,39 @@ export default function PriceTrends() {
                 ))}
               </select>
             </div>
-          </Card>
+          </div>
 
           {/* Hero Chart - Market Overview */}
           {topMaterials.length > 0 && (
-            <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                    <BarChart className="w-6 h-6 text-blue-600" />
+                  <h3 className="text-2xl font-bold text-neutral-900 mb-1 flex items-center gap-2">
+                    <BarChart className="w-6 h-6 text-orange-600" />
                     Market Overview - Top Materials
                   </h3>
-                  <p className="text-sm text-gray-600">30-day price trends for most supplied materials</p>
+                  <p className="text-sm text-neutral-600">30-day price trends for most supplied materials</p>
                 </div>
-                <Badge variant="info" className="text-sm">
+                <div className="badge badge-primary text-sm">
                   Live Data
-                </Badge>
+                </div>
               </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="bg-neutral-50 rounded-lg p-4">
                 <PriceComparisonChart materials={comparisonData} height={350} />
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Detailed Analytics Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Price & Volume Chart - Selected Material */}
             {selectedMaterial && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+              <div className="bg-white rounded-lg border border-neutral-200 p-6">
+                <h3 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-600" />
                   {selectedMaterial.material_name} - Price & Volume
                 </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-neutral-50 rounded-lg p-4">
                   <ComposedPriceChart 
                     data={generateHistoricalData(selectedMaterial, 30)} 
                     height={300}
@@ -462,24 +453,24 @@ export default function PriceTrends() {
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Current</p>
-                    <p className="text-lg font-bold text-blue-600">{formatCurrency(selectedMaterial.median_price)}</p>
+                    <p className="text-xs text-neutral-500 mb-1">Current</p>
+                    <p className="text-lg font-bold text-orange-600">{formatCurrency(selectedMaterial.median_price)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Volatility</p>
+                    <p className="text-xs text-neutral-500 mb-1">Volatility</p>
                     <p className="text-lg font-bold text-yellow-600">{selectedMaterial.price_volatility.toFixed(1)}%</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Suppliers</p>
+                    <p className="text-xs text-neutral-500 mb-1">Suppliers</p>
                     <p className="text-lg font-bold text-green-600">{selectedMaterial.supplier_count}</p>
                   </div>
                 </div>
-              </Card>
+              </div>
             )}
 
             {/* Volatility Distribution Chart */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-lg border border-neutral-200 p-6">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
                 <BarChart className="w-5 h-5 text-blue-600" />
                 Price Volatility Distribution
               </h3>
@@ -494,37 +485,37 @@ export default function PriceTrends() {
                     <>
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-700 flex items-center gap-2">
+                          <span className="text-neutral-700 flex items-center gap-2">
                             <span className="w-3 h-3 bg-green-500 rounded"></span>
                             Stable (&lt;10%)
                           </span>
-                          <span className="font-semibold text-gray-900">{stable} materials ({((stable/total)*100).toFixed(0)}%)</span>
+                          <span className="font-semibold text-neutral-900">{stable} materials ({((stable/total)*100).toFixed(0)}%)</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-neutral-200 rounded-full h-3">
                           <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${(stable/total)*100}%` }}></div>
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-700 flex items-center gap-2">
+                          <span className="text-neutral-700 flex items-center gap-2">
                             <span className="w-3 h-3 bg-yellow-500 rounded"></span>
                             Moderate (10-25%)
                           </span>
-                          <span className="font-semibold text-gray-900">{moderate} materials ({((moderate/total)*100).toFixed(0)}%)</span>
+                          <span className="font-semibold text-neutral-900">{moderate} materials ({((moderate/total)*100).toFixed(0)}%)</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-neutral-200 rounded-full h-3">
                           <div className="bg-yellow-500 h-3 rounded-full transition-all" style={{ width: `${(moderate/total)*100}%` }}></div>
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-700 flex items-center gap-2">
+                          <span className="text-neutral-700 flex items-center gap-2">
                             <span className="w-3 h-3 bg-red-500 rounded"></span>
                             Volatile (&gt;25%)
                           </span>
-                          <span className="font-semibold text-gray-900">{volatile} materials ({((volatile/total)*100).toFixed(0)}%)</span>
+                          <span className="font-semibold text-neutral-900">{volatile} materials ({((volatile/total)*100).toFixed(0)}%)</span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-neutral-200 rounded-full h-3">
                           <div className="bg-red-500 h-3 rounded-full transition-all" style={{ width: `${(volatile/total)*100}%` }}></div>
                         </div>
                       </div>
@@ -533,14 +524,14 @@ export default function PriceTrends() {
                 })()}
               </div>
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-neutral-700">
                   <span className="font-semibold text-blue-900">{((stats.filter(s => s.price_volatility < 10).length / stats.length) * 100).toFixed(0)}%</span> of materials show stable pricing, indicating a mature and predictable market.
                 </p>
               </div>
-            </Card>
+            </div>
 
             {/* Sector Distribution Chart */}
-            <Card className="p-6">
+            <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Package className="w-5 h-5 text-purple-600" />
                 Materials by Sector
@@ -571,10 +562,10 @@ export default function PriceTrends() {
                   ));
                 })()}
               </div>
-            </Card>
+            </div>
 
             {/* Top 5 Most Volatile Materials with Sparklines */}
-            <Card className="p-6">
+            <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-red-600" />
                 Most Volatile Materials
@@ -605,10 +596,10 @@ export default function PriceTrends() {
                   );
                 })}
               </div>
-            </Card>
+            </div>
 
             {/* Top 5 Most Supplied Materials with Sparklines */}
-            <Card className="p-6">
+            <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-green-600" />
                 Most Supplied Materials
@@ -639,11 +630,11 @@ export default function PriceTrends() {
                   );
                 })}
               </div>
-            </Card>
+            </div>
 
             {/* Volume Analysis - Selected Material */}
             {selectedMaterial && (
-              <Card className="p-6">
+              <div className="bg-white rounded-lg border border-neutral-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <BarChart className="w-5 h-5 text-green-600" />
                   {selectedMaterial.material_name} - Volume Trends
@@ -659,34 +650,34 @@ export default function PriceTrends() {
                   />
                 </div>
                 <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-600">
-                    Average daily volume: <span className="font-bold text-gray-900">{selectedMaterial.supplier_count} listings</span>
+                  <p className="text-sm text-neutral-600">
+                    Average daily volume: <span className="font-bold text-neutral-900">{selectedMaterial.supplier_count} listings</span>
                   </p>
                 </div>
-              </Card>
+              </div>
             )}
           </div>
         </div>
       )}
 
       {/* Info Banner */}
-      <Card className="p-6 mb-8 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-blue-200 shadow-md">
+      <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-8 shadow-sm">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-blue-500 rounded-lg">
+          <div className="p-3 bg-orange-500 rounded-lg">
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1">
-            <p className="text-lg font-bold text-gray-900 mb-2">Rwanda's First Real-Time Economic Price Index</p>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-lg font-bold text-neutral-900 mb-2">Rwanda's First Real-Time Economic Price Index</p>
+            <p className="text-neutral-700 leading-relaxed">
               All price data is automatically calculated from verified supplier listings across Rwanda. 
               Track market trends, compare prices by location, and make informed purchasing decisions with real-time market intelligence.
             </p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Filters and Controls */}
-      <Card className="p-6 mb-8 shadow-sm">
+      <div className="bg-white rounded-lg border border-neutral-200 p-6 mb-8 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">Search Materials</label>
@@ -726,22 +717,22 @@ export default function PriceTrends() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">View</label>
             <div className="flex gap-2">
-              <Button 
-                variant={viewMode === 'grid' ? 'primary' : 'secondary'} 
-                size="sm"
+              <button 
                 onClick={() => setViewMode('grid')}
-                className="flex-1"
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewMode === 'grid' ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
               >
                 Grid
-              </Button>
-              <Button 
-                variant={viewMode === 'table' ? 'primary' : 'secondary'} 
-                size="sm"
+              </button>
+              <button 
                 onClick={() => setViewMode('table')}
-                className="flex-1"
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  viewMode === 'table' ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                }`}
               >
                 Table
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -749,11 +740,11 @@ export default function PriceTrends() {
         {/* Results count */}
         <div className="mt-4 pt-4 border-t border-gray-200">
           <p className="text-sm text-gray-600">
-            Showing <span className="font-semibold text-gray-900">{filteredStats.length}</span> of <span className="font-semibold text-gray-900">{stats.length}</span> materials
+            Showing <span className="font-semibold text-neutral-900">{filteredStats.length}</span> of <span className="font-semibold text-neutral-900">{stats.length}</span> materials
             {selectedSector && <span> in <span className="font-semibold capitalize">{selectedSector}</span></span>}
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Statistics Grid */}
       {filteredStats.length === 0 ? (
@@ -778,7 +769,7 @@ export default function PriceTrends() {
                     className="cursor-pointer transform hover:scale-105 transition-transform"
                     onClick={() => navigate(`/materials/${stat.material_id}`)}
                   >
-                    <Card className="hover:shadow-xl transition-shadow h-full border-l-4 border-l-blue-500">
+                    <div className="bg-white rounded-lg border border-neutral-200 hover:shadow-xl transition-shadow h-full border-l-4 border-l-orange-500">
                       <div className="p-6">
                         {/* Header */}
                         <div className="flex justify-between items-start mb-4">
@@ -879,33 +870,29 @@ export default function PriceTrends() {
                         </p>
 
                         {/* Actions */}
-                        <div className="pt-4 border-t border-gray-200 space-y-2">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            className="w-full font-semibold"
+                        <div className="pt-4 border-t border-neutral-200 space-y-2">
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/materials/${stat.material_id}`);
                             }}
+                            className="btn-primary w-full flex items-center justify-center gap-1"
                           >
-                            <Brain className="w-4 h-4 mr-1" />
+                            <Brain className="w-4 h-4" />
                             View Intelligence →
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="w-full"
+                          </button>
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/materials/${stat.material_id}`);
                             }}
+                            className="btn-secondary w-full"
                           >
                             View {stat.supplier_count} Suppliers
-                          </Button>
+                          </button>
                         </div>
                       </div>
-                    </Card>
+                    </div>
                   </div>
                 );
               })}
@@ -914,37 +901,37 @@ export default function PriceTrends() {
 
           {/* Table View */}
           {viewMode === 'table' && (
-            <Card className="overflow-hidden">
+            <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-neutral-50 border-b border-neutral-200">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Material</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Sector</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Median Price</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Range</th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Volatility</th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Suppliers</th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Locations</th>
-                      <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Material</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-700 uppercase tracking-wider">Sector</th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-700 uppercase tracking-wider">Median Price</th>
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-700 uppercase tracking-wider">Range</th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-neutral-700 uppercase tracking-wider">Volatility</th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-neutral-700 uppercase tracking-wider">Suppliers</th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-neutral-700 uppercase tracking-wider">Locations</th>
+                      <th className="px-6 py-4 text-center text-xs font-semibold text-neutral-700 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-neutral-200">
                     {filteredStats.map(stat => {
                       const volatilityBadge = getVolatilityBadge(stat.price_volatility);
                       return (
-                        <tr key={stat.material_id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={stat.material_id} className="hover:bg-neutral-50 transition-colors">
                           <td className="px-6 py-4">
                             <div>
-                              <p className="font-semibold text-gray-900">{stat.material_name}</p>
-                              <p className="text-xs text-gray-500">{stat.unit}</p>
+                              <p className="font-semibold text-neutral-900">{stat.material_name}</p>
+                              <p className="text-xs text-neutral-500">{stat.unit}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm text-gray-700 capitalize">{stat.sector}</span>
+                            <span className="text-sm text-neutral-700 capitalize">{stat.sector}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <span className="font-bold text-gray-900">{formatCurrency(stat.median_price)}</span>
+                            <span className="font-bold text-neutral-900">{formatCurrency(stat.median_price)}</span>
                           </td>
                           <td className="px-6 py-4 text-right">
                             <div className="text-sm">
@@ -953,25 +940,28 @@ export default function PriceTrends() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <Badge variant={volatilityBadge.variant} className="text-xs">
+                            <div className={`badge text-xs ${
+                              volatilityBadge.variant === 'success' ? 'badge-success' :
+                              volatilityBadge.variant === 'warning' ? 'badge-warning' :
+                              'badge-warning'
+                            }`}>
                               {stat.price_volatility.toFixed(1)}%
-                            </Badge>
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="font-semibold text-gray-900">{stat.supplier_count}</span>
+                            <span className="font-semibold text-neutral-900">{stat.supplier_count}</span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="font-semibold text-gray-900">{stat.locations.length}</span>
+                            <span className="font-semibold text-neutral-900">{stat.locations.length}</span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <Button
-                              size="sm"
-                              variant="primary"
+                            <button
                               onClick={() => navigate(`/materials/${stat.material_id}`)}
+                              className="btn-primary flex items-center gap-1"
                             >
-                              <Brain className="w-4 h-4 mr-1" />
+                              <Brain className="w-4 h-4" />
                               View Details
-                            </Button>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -979,42 +969,65 @@ export default function PriceTrends() {
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           )}
         </div>
       )}
 
-      {/* Bottom CTA */}
-      <Card className="mt-8 p-8 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 border-2 border-blue-200 shadow-lg">
-        <div className="text-center">
-          <div className="inline-block p-4 bg-blue-500 rounded-full mb-4">
-            <Package className="w-8 h-8 text-white" />
+        {/* Bottom CTA */}
+        <div className="mt-8 p-8 bg-gradient-to-r from-green-50 via-orange-50 to-red-50 border-2 border-orange-200 shadow-lg rounded-lg">
+          <div className="text-center">
+            <div className="inline-block p-4 bg-orange-500 rounded-full mb-4">
+              <Package className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-neutral-900 mb-3">
+              Want to sell materials?
+            </h3>
+            <p className="text-neutral-700 mb-6 max-w-2xl mx-auto">
+              Create a listing and your prices will automatically contribute to Rwanda's economic price trends. 
+              Join {totalSuppliers} verified suppliers already on the platform.
+            </p>
+            <button 
+              onClick={() => navigate('/suppliers/create')} 
+              className="btn-primary px-8 py-3 text-lg font-semibold"
+            >
+              Create Listing →
+            </button>
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
-            Want to sell materials?
-          </h3>
-          <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
-            Create a listing and your prices will automatically contribute to Rwanda's economic price trends. 
-            Join {totalSuppliers} verified suppliers already on the platform.
-          </p>
-          <Button onClick={() => navigate('/suppliers/create')} size="lg" className="font-semibold">
-            Create Listing →
-          </Button>
         </div>
-      </Card>
 
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          .print\\:hidden {
-            display: none !important;
+        {/* Print Styles */}
+        <style>{`
+          @media print {
+            .print\\:hidden {
+              display: none !important;
+            }
+            body {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
           }
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-        }
-      `}</style>
+        `}</style>
+        
+        {/* Help Section */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => {
+              const messageParams = new URLSearchParams({
+                userId: 'support', // Support team ID
+                context: 'price-trends',
+                subject: 'Price Intelligence Help'
+              });
+              navigate('/messages?' + messageParams.toString());
+            }}
+            className="bg-orange-600 hover:bg-orange-700 text-white p-3 rounded-full shadow-lg transition-colors flex items-center gap-2"
+            title="Need help with price data?"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="hidden md:inline text-sm font-medium">Need Help?</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

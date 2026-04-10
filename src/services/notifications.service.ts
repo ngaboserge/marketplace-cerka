@@ -1,98 +1,77 @@
-import { supabaseUntyped as supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 
-export interface DbNotification {
+export interface Notification {
   id: string;
   user_id: string;
-  type: string;
+  type: 'message' | 'quote_request' | 'quote_response' | 'listing_update' | 'price_alert' | 'system' | 'welcome' | 'verification';
   title: string;
   message: string;
-  data: any;
+  data?: any;
   read: boolean;
-  read_at: string | null;
   created_at: string;
 }
 
 export const notificationsService = {
-  // Get user notifications with pagination
-  async getNotifications(userId: string, options?: {
-    limit?: number;
-    offset?: number;
-    unreadOnly?: boolean;
-  }): Promise<DbNotification[]> {
-    let query = supabase
+  async getNotifications(userId: string, limit = 50): Promise<Notification[]> {
+    const { data, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-    if (options?.unreadOnly) {
-      query = query.eq('read', false);
-    }
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-    if (options?.offset) {
-      query = query.range(options.offset, options.offset + (options.limit || 20) - 1);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
-    return (data || []) as DbNotification[];
+    return data || [];
   },
 
-  // Get unread count
   async getUnreadCount(userId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('read', false);
+    const { data, error } = await supabase
+      .rpc('get_unread_notification_count', { user_uuid: userId });
 
     if (error) throw error;
-    return count || 0;
+    return data || 0;
   },
 
-  // Mark notification as read
-  async markAsRead(notificationId: string) {
+  async markAsRead(notificationId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
-      .update({ read: true, read_at: new Date().toISOString() } as any)
+      .update({ read: true })
       .eq('id', notificationId);
 
     if (error) throw error;
   },
 
-  // Mark all as read
-  async markAllAsRead(userId: string) {
+  async markAllAsRead(userId: string): Promise<void> {
     const { error } = await supabase
-      .from('notifications')
-      .update({ read: true, read_at: new Date().toISOString() } as any)
-      .eq('user_id', userId)
-      .eq('read', false);
+      .rpc('mark_all_notifications_read', { user_uuid: userId });
 
     if (error) throw error;
   },
 
-  // Create notification
-  async createNotification(notification: {
-    user_id: string;
-    type: string;
-    title: string;
-    message: string;
-    data?: any;
-  }) {
-    const { data, error } = await supabase
+  async createNotification(
+    userId: string,
+    type: Notification['type'],
+    title: string,
+    message: string,
+    data?: any
+  ): Promise<Notification> {
+    const { data: notification, error } = await supabase
       .from('notifications')
-      .insert(notification as any)
+      .insert({
+        user_id: userId,
+        type,
+        title,
+        message,
+        data
+      })
       .select()
       .single();
 
     if (error) throw error;
-    return data as DbNotification;
+    return notification;
   },
 
-  // Delete notification
-  async deleteNotification(notificationId: string) {
+  async deleteNotification(notificationId: string): Promise<void> {
     const { error } = await supabase
       .from('notifications')
       .delete()
@@ -101,22 +80,63 @@ export const notificationsService = {
     if (error) throw error;
   },
 
-  // Subscribe to real-time notifications
-  subscribeToNotifications(userId: string, callback: (notification: DbNotification) => void) {
-    return supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          callback(payload.new as DbNotification);
-        }
-      )
-      .subscribe();
+  // Helper methods for common notification types
+  async notifyNewMessage(userId: string, senderName: string, messagePreview: string, conversationId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'message',
+      `New message from ${senderName}`,
+      messagePreview,
+      { conversationId }
+    );
   },
+
+  async notifyQuoteRequest(userId: string, buyerName: string, productName: string, listingId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'quote_request',
+      `New quote request from ${buyerName}`,
+      `Quote requested for ${productName}`,
+      { listingId }
+    );
+  },
+
+  async notifyQuoteResponse(userId: string, supplierName: string, productName: string, quoteId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'quote_response',
+      `Quote received from ${supplierName}`,
+      `Quote for ${productName} is ready`,
+      { quoteId }
+    );
+  },
+
+  async notifyListingUpdate(userId: string, productName: string, updateType: string, listingId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'listing_update',
+      `Product update: ${productName}`,
+      `${updateType} for ${productName}`,
+      { listingId }
+    );
+  },
+
+  async notifyPriceAlert(userId: string, productName: string, newPrice: number, listingId: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'price_alert',
+      `Price alert: ${productName}`,
+      `Price changed to ${newPrice.toLocaleString()} RWF`,
+      { listingId }
+    );
+  },
+
+  async notifyWelcome(userId: string, userName: string): Promise<void> {
+    await this.createNotification(
+      userId,
+      'welcome',
+      `Welcome to the marketplace, ${userName}!`,
+      'Start exploring products and connect with suppliers across Rwanda.'
+    );
+  }
 };

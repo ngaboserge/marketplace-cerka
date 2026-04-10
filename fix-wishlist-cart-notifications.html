@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Wishlist Cart Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Fixing Wishlist, Cart, and Notifications Issues</h1>
+    <div id="output"></div>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function fixTables() {
+            try {
+                log('🔧 Starting fixes...');
+
+                // Drop existing tables if they exist (to start fresh)
+                log('Dropping existing tables...');
+                const dropCommands = [
+                    'DROP TABLE IF EXISTS public.wishlist_items CASCADE;',
+                    'DROP TABLE IF EXISTS public.cart_items CASCADE;',
+                    'DROP TABLE IF EXISTS public.notifications CASCADE;'
+                ];
+
+                for (const dropSql of dropCommands) {
+                    const { error } = await supabase.rpc('exec_sql', { sql: dropSql });
+                    if (error) {
+                        log('Drop error (expected): ' + JSON.stringify(error));
+                    }
+                }
+                log('✓ Tables dropped');
+
+                // Create wishlist_items table
+                log('Creating wishlist_items table...');
+                const { error: wishlistError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE public.wishlist_items (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            listing_id UUID NOT NULL REFERENCES public.supplier_listings(id) ON DELETE CASCADE,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(user_id, listing_id)
+                        );
+                    `
+                });
+                if (wishlistError) {
+                    log('❌ Wishlist table error: ' + JSON.stringify(wishlistError));
+                } else {
+                    log('✅ Wishlist table created');
+                }
+
+                // Create cart_items table
+                log('Creating cart_items table...');
+                const { error: cartError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE public.cart_items (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            listing_id UUID NOT NULL REFERENCES public.supplier_listings(id) ON DELETE CASCADE,
+                            quantity DECIMAL(10, 2) NOT NULL DEFAULT 1 CHECK (quantity > 0),
+                            notes TEXT,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(user_id, listing_id)
+                        );
+                    `
+                });
+                if (cartError) {
+                    log('❌ Cart table error: ' + JSON.stringify(cartError));
+                } else {
+                    log('✅ Cart table created');
+                }
+
+                // Create notifications table with correct columns
+                log('Creating notifications table...');
+                const { error: notifError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE public.notifications (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            type VARCHAR(50) NOT NULL,
+                            title VARCHAR(200) NOT NULL,
+                            message TEXT NOT NULL,
+                            data JSONB,
+                            read BOOLEAN DEFAULT FALSE,
+                            read_at TIMESTAMPTZ,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                    `
+                });
+                if (notifError) {
+                    log('❌ Notifications table error: ' + JSON.stringify(notifError));
+                } else {
+                    log('✅ Notifications table created');
+                }
+
+                // Create indexes
+                log('Creating indexes...');
+                const indexes = [
+                    'CREATE INDEX idx_wishlist_user_id ON public.wishlist_items(user_id);',
+                    'CREATE INDEX idx_wishlist_listing_id ON public.wishlist_items(listing_id);',
+                    'CREATE INDEX idx_cart_user_id ON public.cart_items(user_id);',
+                    'CREATE INDEX idx_cart_listing_id ON public.cart_items(listing_id);',
+                    'CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);',
+                    'CREATE INDEX idx_notifications_read ON public.notifications(read);',
+                    'CREATE INDEX idx_notifications_type ON public.notifications(type);'
+                ];
+
+                for (const indexSql of indexes) {
+                    const { error } = await supabase.rpc('exec_sql', { sql: indexSql });
+                    if (error) {
+                        log('Index error: ' + JSON.stringify(error));
+                    }
+                }
+                log('✅ Indexes created');
+
+                // Enable RLS
+                log('Enabling RLS...');
+                const rlsCommands = [
+                    'ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;',
+                    'ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;',
+                    'ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;'
+                ];
+
+                for (const rlsSql of rlsCommands) {
+                    const { error } = await supabase.rpc('exec_sql', { sql: rlsSql });
+                    if (error) {
+                        log('RLS error: ' + JSON.stringify(error));
+                    }
+                }
+                log('✅ RLS enabled');
+
+                // Create policies
+                log('Creating RLS policies...');
+                const policies = [
+                    // Wishlist policies
+                    `CREATE POLICY "Users can view their own wishlist items" ON public.wishlist_items FOR SELECT USING (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can insert their own wishlist items" ON public.wishlist_items FOR INSERT WITH CHECK (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can delete their own wishlist items" ON public.wishlist_items FOR DELETE USING (auth.uid() = user_id);`,
+                    
+                    // Cart policies
+                    `CREATE POLICY "Users can view their own cart items" ON public.cart_items FOR SELECT USING (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can insert their own cart items" ON public.cart_items FOR INSERT WITH CHECK (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can update their own cart items" ON public.cart_items FOR UPDATE USING (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can delete their own cart items" ON public.cart_items FOR DELETE USING (auth.uid() = user_id);`,
+                    
+                    // Notification policies
+                    `CREATE POLICY "Users can view their own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);`,
+                    `CREATE POLICY "Users can update their own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);`
+                ];
+
+                for (const policySql of policies) {
+                    const { error } = await supabase.rpc('exec_sql', { sql: policySql });
+                    if (error && !error.message.includes('already exists')) {
+                        log('Policy error: ' + JSON.stringify(error));
+                    }
+                }
+                log('✅ Policies created');
+
+                // Create trigger for updated_at
+                log('Creating triggers...');
+                const triggerSql = `
+                    CREATE OR REPLACE FUNCTION update_updated_at_column()
+                    RETURNS TRIGGER AS $$
+                    BEGIN
+                        NEW.updated_at = NOW();
+                        RETURN NEW;
+                    END;
+                    $$ language 'plpgsql';
+
+                    CREATE TRIGGER update_cart_items_updated_at 
+                        BEFORE UPDATE ON public.cart_items 
+                        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+                `;
+                
+                const { error: triggerError } = await supabase.rpc('exec_sql', { sql: triggerSql });
+                if (triggerError) {
+                    log('Trigger error: ' + JSON.stringify(triggerError));
+                } else {
+                    log('✅ Triggers created');
+                }
+
+                log('🎉 All fixes completed successfully!');
+
+                // Test the tables
+                log('Testing tables...');
+                const { data: wishlistTest, error: wishlistTestError } = await supabase.from('wishlist_items').select('*').limit(1);
+                const { data: cartTest, error: cartTestError } = await supabase.from('cart_items').select('*').limit(1);
+                const { data: notifTest, error: notifTestError } = await supabase.from('notifications').select('*').limit(1);
+                
+                if (wishlistTestError) log('Wishlist test error: ' + JSON.stringify(wishlistTestError));
+                if (cartTestError) log('Cart test error: ' + JSON.stringify(cartTestError));
+                if (notifTestError) log('Notifications test error: ' + JSON.stringify(notifTestError));
+                
+                if (!wishlistTestError && !cartTestError && !notifTestError) {
+                    log('✅ All tables accessible and working!');
+                }
+
+            } catch (error) {
+                log('❌ Fix failed: ' + error.message);
+            }
+        }
+
+        // Run fixes when page loads
+        fixTables();
+    </script>
+</body>
+</html>

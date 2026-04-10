@@ -26,6 +26,7 @@ interface MarketplaceState {
   removeFavorite: (buyerId: string, supplierId: string) => Promise<void>;
   fetchFavorites: (buyerId: string) => Promise<void>;
   fetchListingsBySector: (sector: string) => Promise<void>;
+  fetchAllListings: () => Promise<void>;
   reset: () => void;
 }
 
@@ -156,19 +157,12 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   fetchListingsBySector: async (sector) => {
     set({ loading: true, error: null });
     try {
-      // Fetch all active listings with material data including sector
+      // Fetch all active listings with material data
       const { data, error } = await supabase
         .from('supplier_listings')
         .select(`
           *,
-          material:materials(id, name, category, unit, icon, sector),
-          supplier:profiles!supplier_listings_supplier_id_fkey(
-            id,
-            business_name,
-            is_verified_supplier,
-            average_rating,
-            phone
-          )
+          material:materials(id, name, category, unit, icon, sector)
         `)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
@@ -180,10 +174,82 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
         listing.material?.sector === sector
       );
 
-      set({ listings: filteredData, loading: false });
+      // Fetch supplier data separately for each listing
+      const listingsWithSupplier = await Promise.all(
+        filteredData.map(async (listing) => {
+          if (listing.supplier_id) {
+            try {
+              const { data: supplier, error: supplierError } = await supabase
+                .from('profiles')
+                .select('id, full_name, business_name, location, is_verified_supplier, average_rating, total_reviews')
+                .eq('id', listing.supplier_id)
+                .maybeSingle(); // Use maybeSingle to avoid errors
+              
+              if (supplierError) {
+                console.error('Error fetching supplier:', supplierError);
+                return listing;
+              } else {
+                return { ...listing, supplier };
+              }
+            } catch (error) {
+              console.error('Failed to fetch supplier:', error);
+              return listing;
+            }
+          }
+          return listing;
+        })
+      );
+
+      set({ listings: listingsWithSupplier, loading: false });
     } catch (error: any) {
       set({ error: error.message, loading: false });
-      throw error;
+    }
+  },
+
+  fetchAllListings: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('supplier_listings')
+        .select(`
+          *,
+          material:materials(id, name, category, unit, icon, sector)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Fetch supplier data separately for each listing with error handling
+      const listingsWithSupplier = await Promise.all(
+        (data || []).map(async (listing) => {
+          if (listing.supplier_id) {
+            try {
+              const { data: supplier, error: supplierError } = await supabase
+                .from('profiles')
+                .select('id, full_name, business_name, location, is_verified_supplier, average_rating, total_reviews')
+                .eq('id', listing.supplier_id)
+                .maybeSingle(); // Use maybeSingle to avoid errors
+              
+              if (supplierError) {
+                console.error('Error fetching supplier:', supplierError);
+                return listing; // Return listing without supplier data
+              } else {
+                return { ...listing, supplier };
+              }
+            } catch (error) {
+              console.error('Failed to fetch supplier:', error);
+              return listing; // Return listing without supplier data
+            }
+          }
+          return listing;
+        })
+      );
+
+      set({ listings: listingsWithSupplier, loading: false });
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
     }
   },
 

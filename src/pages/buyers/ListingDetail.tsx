@@ -92,8 +92,8 @@ export default function ListingDetail() {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: selectedListing?.material?.name || 'Material Listing',
-        text: `Check out this ${selectedListing?.material?.name} listing`,
+        title: selectedListing?.title || 'Material Listing',
+        text: `Check out this ${selectedListing?.title} listing`,
         url: window.location.href
       }).catch(() => {});
     } else {
@@ -122,7 +122,7 @@ export default function ListingDetail() {
             Marketplace
           </button>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{selectedListing.material?.name}</span>
+          <span className="text-gray-900 font-medium">{selectedListing.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -132,7 +132,7 @@ export default function ListingDetail() {
             {selectedListing.photos && selectedListing.photos.length > 0 && (
               <ImageGallery 
                 images={selectedListing.photos} 
-                alt={selectedListing.material?.name || 'Material'} 
+                alt={selectedListing.title} 
               />
             )}
 
@@ -141,7 +141,7 @@ export default function ListingDetail() {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    {selectedListing.material?.name}
+                    {selectedListing.title}
                   </h1>
                   <div className="flex items-center gap-3 flex-wrap">
                     <Badge variant="primary">{selectedListing.material?.category}</Badge>
@@ -153,7 +153,7 @@ export default function ListingDetail() {
                     )}
                     <div className="flex items-center gap-1 text-gray-600">
                       <MapPin className="w-4 h-4" />
-                      <span className="text-sm">{selectedListing.location}</span>
+                      <span className="text-sm">{selectedListing.location || selectedListing.supplier?.location || 'Location not specified'}</span>
                     </div>
                   </div>
                 </div>
@@ -218,6 +218,13 @@ export default function ListingDetail() {
               {/* Tab Content */}
               {activeTab === 'details' && (
                 <div className="space-y-6">
+                  {selectedListing.description && (
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
+                      <p className="text-gray-700">{selectedListing.description}</p>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
                       <Package className="w-5 h-5 text-primary-600 mt-0.5" />
@@ -233,6 +240,17 @@ export default function ListingDetail() {
                           <p className="text-sm font-medium text-gray-900">Minimum Order</p>
                           <p className="text-lg text-gray-700">
                             {selectedListing.min_quantity} {selectedListing.material?.unit}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedListing.stock_quantity && (
+                      <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                        <Package className="w-5 h-5 text-primary-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Available Stock</p>
+                          <p className="text-lg text-gray-700">
+                            {selectedListing.stock_quantity} {selectedListing.material?.unit}
                           </p>
                         </div>
                       </div>
@@ -256,18 +274,32 @@ export default function ListingDetail() {
 
               {activeTab === 'delivery' && (
                 <div className="space-y-4">
-                  {selectedListing.delivery_info ? (
-                    <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-                      <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 mb-1">Delivery Information</p>
-                        <p className="text-gray-700">{selectedListing.delivery_info}</p>
+                  {selectedListing.delivery_available ? (
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
+                        <Truck className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 mb-1">Delivery Available</p>
+                          {selectedListing.delivery_cost && (
+                            <p className="text-gray-700 mb-1">
+                              Cost: {formatCurrency(selectedListing.delivery_cost)}
+                            </p>
+                          )}
+                          {selectedListing.delivery_time_days && (
+                            <p className="text-gray-700 mb-1">
+                              Delivery Time: {selectedListing.delivery_time_days} days
+                            </p>
+                          )}
+                          {selectedListing.delivery_info && (
+                            <p className="text-gray-700">{selectedListing.delivery_info}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Truck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>Contact supplier for delivery details</p>
+                      <p>Delivery not available - Contact supplier for pickup arrangements</p>
                     </div>
                   )}
                 </div>
@@ -299,7 +331,7 @@ export default function ListingDetail() {
                       </div>
                       <div className="flex items-center gap-2 text-gray-600 text-sm">
                         <MapPin className="w-4 h-4" />
-                        <span>{selectedListing.location}</span>
+                        <span>{selectedListing.location || selectedListing.supplier?.location || 'Location not specified'}</span>
                         {selectedListing.area && <span>• {selectedListing.area}</span>}
                       </div>
                     </div>
@@ -340,9 +372,9 @@ export default function ListingDetail() {
                     const params = new URLSearchParams({
                       userId: selectedListing.supplier_id,
                       context: 'materials',
-                      materialName: selectedListing.material?.name || '',
+                      materialName: selectedListing.title,
                       price: formatCurrency(selectedListing.price),
-                      location: selectedListing.location
+                      location: selectedListing.location || selectedListing.supplier?.location || 'Location not specified'
                     });
                     navigate(`/messages?${params.toString()}`);
                   }}

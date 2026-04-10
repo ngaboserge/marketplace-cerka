@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Verification Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .image-test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .image-test img { max-width: 300px; height: 200px; object-fit: cover; border-radius: 8px; }
+        .image-test h3 { margin: 0 0 10px 0; color: #333; }
+        .image-test p { margin: 5px 0; color: #666; }
+        .status { padding: 5px 10px; border-radius: 4px; font-weight: bold; }
+        .loading { background: #fff3cd; color: #856404; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Landing Page Images Verification</h1>
+    <p>Testing all updated images to ensure they show African/Black professionals...</p>
+    
+    <div id="imageTests"></div>
+
+    <script>
+        const images = [
+            {
+                name: "Hero Background",
+                url: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=1920&h=1080&fit=crop&crop=center",
+                description: "African business professionals - hero background"
+            },
+            {
+                name: "Construction Materials",
+                url: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=400&fit=crop&crop=center",
+                description: "Construction materials - cement, steel, bricks"
+            },
+            {
+                name: "Vehicles & Cars (Updated)",
+                url: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&h=400&fit=crop&crop=center",
+                description: "Cars and motorcycles - non-US setting"
+            },
+            {
+                name: "Agriculture Products",
+                url: "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=600&h=400&fit=crop&crop=center",
+                description: "Fresh agricultural products"
+            },
+            {
+                name: "Electronics",
+                url: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&h=400&fit=crop&crop=center",
+                description: "Electronics and technology products"
+            },
+            {
+                name: "Textiles",
+                url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop&crop=center",
+                description: "Textiles and clothing materials"
+            },
+            {
+                name: "Home & Garden",
+                url: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=600&h=400&fit=crop&crop=center",
+                description: "Furniture and home decor items"
+            },
+            {
+                name: "African Woman Supplier (Fixed)",
+                url: "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=300&h=200&fit=crop&crop=center",
+                description: "African woman supplier in business"
+            },
+            {
+                name: "African Man Buyer (Fixed)",
+                url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop&crop=center",
+                description: "African businessman buyer"
+            },
+            {
+                name: "Testimonial 1",
+                url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&h=80&fit=crop&crop=face",
+                description: "African businesswoman - Sarah Uwimana"
+            },
+            {
+                name: "Testimonial 2",
+                url: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face",
+                description: "African businessman - Jean Baptiste"
+            },
+            {
+                name: "How It Works 1 (Updated)",
+                url: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=400&h=250&fit=crop&crop=center",
+                description: "Search & Discover - African professional with laptop"
+            },
+            {
+                name: "How It Works 2 (Updated)",
+                url: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=400&h=250&fit=crop&crop=center",
+                description: "Connect & Compare - African business meeting"
+            },
+            {
+                name: "How It Works 3 (Updated)",
+                url: "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=400&h=250&fit=crop&crop=center",
+                description: "Trade & Grow - African businesswoman success"
+            }
+        ];
+
+        const container = document.getElementById('imageTests');
+
+        images.forEach((imageData, index) => {
+            const testDiv = document.createElement('div');
+            testDiv.className = 'image-test';
+            testDiv.innerHTML = `
+                <h3>${imageData.name}</h3>
+                <p>${imageData.description}</p>
+                <div class="status loading" id="status-${index}">Loading...</div>
+                <br><br>
+                <img id="img-${index}" src="${imageData.url}" alt="${imageData.description}" 
+                     onload="imageLoaded(${index})" 
+                     onerror="imageError(${index})" />
+            `;
+            container.appendChild(testDiv);
+        });
+
+        function imageLoaded(index) {
+            const status = document.getElementById(`status-${index}`);
+            status.className = 'status success';
+            status.textContent = '✅ Image loaded successfully';
+        }
+
+        function imageError(index) {
+            const status = document.getElementById(`status-${index}`);
+            status.className = 'status error';
+            status.textContent = '❌ Failed to load image';
+        }
+
+        // Summary after all images attempt to load
+        setTimeout(() => {
+            const successCount = document.querySelectorAll('.status.success').length;
+            const errorCount = document.querySelectorAll('.status.error').length;
+            const totalCount = images.length;
+            
+            const summaryDiv = document.createElement('div');
+            summaryDiv.innerHTML = `
+                <h2>📊 Summary</h2>
+                <p><strong>Total Images:</strong> ${totalCount}</p>
+                <p><strong>Successfully Loaded:</strong> ${successCount}</p>
+                <p><strong>Failed to Load:</strong> ${errorCount}</p>
+                <p><strong>Success Rate:</strong> ${Math.round((successCount/totalCount)*100)}%</p>
+                ${successCount === totalCount ? 
+                    '<p style="color: green; font-weight: bold;">🎉 All images are loading correctly!</p>' : 
+                    '<p style="color: orange; font-weight: bold;">⚠️ Some images may need attention.</p>'
+                }
+            `;
+            container.appendChild(summaryDiv);
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -2,45 +2,45 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/components/layout';
 import { Card, Button, Skeleton } from '@/components/ui';
-import { useAuthStore } from '@/store/authStore';
-import { notificationsService } from '@/services/notifications.service';
+import { useAuthStore, useNotificationsStore } from '@/store';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
-import type { Notification } from '@/lib/database.types';
+import type { Notification } from '@/services/notifications.service';
 
 const NOTIFICATION_ICONS: Record<string, JSX.Element> = {
-  shift_confirmed: (
+  message: (
+    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  ),
+  quote_request: (
+    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  ),
+  listing_approved: (
     <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
-  shift_standby: (
-    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  application_rejected: (
+  listing_rejected: (
     <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
-  new_application: (
-    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  price_alert: (
+    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
     </svg>
   ),
-  shift_reminder: (
+  order_update: (
     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
     </svg>
   ),
-  payment_processed: (
-    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  message: (
-    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  system: (
+    <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
   default: (
@@ -52,7 +52,7 @@ const NOTIFICATION_ICONS: Record<string, JSX.Element> = {
 
 export function Notifications() {
   const { user } = useAuthStore();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, deleteNotification } = useNotificationsStore();
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
@@ -61,11 +61,7 @@ export function Notifications() {
       if (!user?.id) return;
 
       try {
-        const data = await notificationsService.getNotifications(user.id, {
-          limit: 50,
-          unreadOnly: filter === 'unread',
-        });
-        setNotifications(data);
+        await fetchNotifications();
       } catch (error) {
         console.error('Error loading notifications:', error);
       } finally {
@@ -74,25 +70,11 @@ export function Notifications() {
     };
 
     loadNotifications();
-
-    // Subscribe to real-time notifications
-    if (user?.id) {
-      const subscription = notificationsService.subscribeToNotifications(user.id, (notification) => {
-        setNotifications(prev => [notification, ...prev]);
-      });
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [user, filter]);
+  }, [user, filter, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      await notificationsService.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true, read_at: new Date().toISOString() } : n)
-      );
+      await markAsRead(notificationId);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -101,8 +83,7 @@ export function Notifications() {
   const handleMarkAllAsRead = async () => {
     if (!user?.id) return;
     try {
-      await notificationsService.markAllAsRead(user.id);
-      setNotifications(prev => prev.map(n => ({ ...n, read: true, read_at: new Date().toISOString() })));
+      await markAllAsRead();
     } catch (error) {
       console.error('Error marking all as read:', error);
     }
@@ -110,8 +91,7 @@ export function Notifications() {
 
   const handleDelete = async (notificationId: string) => {
     try {
-      await notificationsService.deleteNotification(notificationId);
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      await deleteNotification(notificationId);
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
@@ -124,10 +104,15 @@ export function Notifications() {
     return format(date, 'MMM d, h:mm a');
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // Filter notifications based on current filter
+  const filteredNotifications = filter === 'unread' 
+    ? notifications.filter(n => !n.read) 
+    : notifications;
+
+  const currentUnreadCount = notifications.filter(n => !n.read).length;
 
   // Group notifications by date
-  const groupedNotifications = notifications.reduce((groups, notification) => {
+  const groupedNotifications = filteredNotifications.reduce((groups, notification) => {
     const date = new Date(notification.created_at);
     let key: string;
     if (isToday(date)) key = 'Today';
@@ -149,7 +134,7 @@ export function Notifications() {
               <div>
                 <h1 className="text-xl font-bold text-neutral-900">Notifications</h1>
                 <p className="text-sm text-neutral-500 mt-1">
-                  {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
+                  {currentUnreadCount > 0 ? `${currentUnreadCount} unread notification${currentUnreadCount !== 1 ? 's' : ''}` : 'All caught up!'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -167,7 +152,7 @@ export function Notifications() {
                     Unread
                   </button>
                 </div>
-                {unreadCount > 0 && (
+                {currentUnreadCount > 0 && (
                   <Button variant="secondary" size="sm" onClick={handleMarkAllAsRead}>
                     Mark all as read
                   </Button>
@@ -186,7 +171,7 @@ export function Notifications() {
                 </div>
               ))}
             </Card>
-          ) : notifications.length > 0 ? (
+          ) : filteredNotifications.length > 0 ? (
             <div className="space-y-6">
               {Object.entries(groupedNotifications).map(([date, items]) => (
                 <div key={date}>

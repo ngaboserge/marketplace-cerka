@@ -1,28 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, PageContainer } from '@/components/layout';
-import { 
-  Card, Button, Input, Badge, EmptyState, Skeleton, ImageLightbox
-} from '@/components/ui';
-import { toast } from '@/components/ui/Toast';
-import { useSuppliersStore, useMaterialsStore, useAuthStore } from '@/store';
-import { formatCurrency } from '@/lib/currency';
-import { Search, MapPin, Star, CheckCircle, MessageCircle, ArrowLeft, Filter } from '@/lib/icons';
-import type { SearchFilters } from '@/types/materials.types';
+import { Layout } from '@/components/layout';
+import { SearchFilters } from '@/components/marketplace/SearchFilters';
+import { ProductCard } from '@/components/marketplace/ProductCard';
+import { useMarketplaceStore } from '@/store/marketplaceStore';
+import { useMaterialsStore, useAuthStore } from '@/store';
+import { ArrowLeft, Grid, List, Search } from '@/lib/icons';
+import type { SearchFilters as SearchFiltersType } from '@/types/materials.types';
 
 type SortOption = 'price_asc' | 'price_desc' | 'rating' | 'recent';
+type ViewMode = 'grid' | 'list';
 
 export default function BuyerSearch() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
-  const { searchResults, loading, searchListings } = useSuppliersStore();
+  const { listings, loading, fetchAllListings } = useMarketplaceStore();
   const { materials, fetchMaterials } = useMaterialsStore();
 
+  // Check for featured parameter in URL
+  const searchParams = new URLSearchParams(location.search);
+  const showFeaturedOnly = searchParams.get('featured') === 'true';
+
   const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<{ images: string[], alt: string } | null>(null);
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 });
+  const [filters, setFilters] = useState<SearchFiltersType>({
     material_id: location.state?.materialId || '',
     location: '',
     min_price: undefined,
@@ -31,306 +35,322 @@ export default function BuyerSearch() {
     verified_only: false
   });
 
+  // Calculate real category counts from listings
+  const getCategoryCount = (sector: string) => {
+    return listings.filter(listing => listing.material?.sector === sector).length;
+  };
+
+  const getLocationCount = (location: string) => {
+    return listings.filter(listing => 
+      listing.supplier?.location?.toLowerCase().includes(location.toLowerCase()) ||
+      listing.title?.toLowerCase().includes(location.toLowerCase())
+    ).length;
+  };
+
+  const categories = [
+    { id: 'construction', label: 'Construction Materials', count: getCategoryCount('construction') },
+    { id: 'agriculture', label: 'Agriculture', count: getCategoryCount('agriculture') },
+    { id: 'food', label: 'Food & Beverage', count: getCategoryCount('food') },
+    { id: 'electronics', label: 'Electronics', count: getCategoryCount('electronics') },
+    { id: 'textiles', label: 'Textiles', count: getCategoryCount('textiles') },
+  ];
+
+  const locations = [
+    { id: 'kigali', label: 'Kigali', count: getLocationCount('kigali') },
+    { id: 'musanze', label: 'Musanze', count: getLocationCount('musanze') },
+    { id: 'huye', label: 'Huye', count: getLocationCount('huye') },
+    { id: 'rubavu', label: 'Rubavu', count: getLocationCount('rubavu') },
+    { id: 'nyagatare', label: 'Nyagatare', count: getLocationCount('nyagatare') },
+  ];
+
   useEffect(() => {
     fetchMaterials();
-    handleSearch();
+    fetchAllListings();
   }, []);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 BuyerSearch Debug Info:');
+    console.log('- showFeaturedOnly:', showFeaturedOnly);
+    console.log('- listings count:', listings.length);
+    console.log('- loading:', loading);
+    console.log('- listings data:', listings);
+    
+    if (listings.length > 0) {
+      console.log('- listings view counts:', listings.map(l => `${l.title}: ${l.view_count}`));
+    }
+  }, [showFeaturedOnly, listings, loading]);
+
   const handleSearch = () => {
-    searchListings(filters);
+    // Search is now handled by filtering the listings array
+    // The filtered results will be calculated in the render
   };
 
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
   };
 
-  const clearFilters = () => {
-    setFilters({
-      material_id: '',
-      location: '',
-      min_price: undefined,
-      max_price: undefined,
-      min_rating: undefined,
-      verified_only: false
-    });
+  // Filter listings based on current filters and search query
+  const filteredListings = listings.filter(listing => {
+    // Featured filter - if showFeaturedOnly is true, only show listings with high view count
+    if (showFeaturedOnly && listing.view_count <= 10) {
+      console.log(`❌ ${listing.title} filtered out: view_count ${listing.view_count} <= 10`);
+      return false;
+    }
+    
+    // Text search
+    if (searchQuery && !listing.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Material filter
+    if (filters.material_id && listing.material_id !== filters.material_id) {
+      return false;
+    }
+    
+    // Price range filter
+    if (filters.min_price && listing.price < filters.min_price) {
+      return false;
+    }
+    if (filters.max_price && listing.price > filters.max_price) {
+      return false;
+    }
+    
+    // Location filter (search in title for now)
+    if (filters.location && !listing.title.toLowerCase().includes(filters.location.toLowerCase())) {
+      return false;
+    }
+    
+    if (showFeaturedOnly) {
+      console.log(`✅ ${listing.title} passes featured filter: view_count ${listing.view_count} > 10`);
+    }
+    
+    return true;
+  });
+
+  // Debug the filtered results
+  useEffect(() => {
+    if (showFeaturedOnly) {
+      console.log('🎯 Featured filtering results:');
+      console.log('- Total listings:', listings.length);
+      console.log('- Filtered listings:', filteredListings.length);
+      console.log('- Featured listings:', filteredListings.map(l => `${l.title} (${l.view_count} views)`));
+    }
+  }, [filteredListings, showFeaturedOnly]);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+    // Apply filters logic here
   };
 
-  const activeFilterCount = Object.values(filters).filter(v => v !== '' && v !== undefined && v !== false).length;
+  const handlePriceRangeChange = (range: { min: number; max: number }) => {
+    setPriceRange(range);
+    setFilters(prev => ({
+      ...prev,
+      min_price: range.min,
+      max_price: range.max
+    }));
+  };
 
-  const sortedResults = [...searchResults].sort((a, b) => {
+  // Convert search results to ProductCard format
+  const convertToProductCards = (results: any[]) => {
+    return results.map(listing => ({
+      id: listing.id,
+      title: listing.title,
+      price: {
+        min: listing.price,
+        max: listing.price * 1.05, // Small price range for negotiation
+        unit: listing.material?.unit || 'unit'
+      },
+      image: listing.photos?.[0] || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop',
+      images: listing.photos?.slice(1) || [],
+      supplier: {
+        name: listing.supplier?.business_name || listing.supplier?.full_name || listing.supplier?.name || 'Business Supplier',
+        verified: listing.supplier?.is_verified_supplier || false,
+        rating: listing.supplier?.average_rating || 4.2,
+        reviewCount: listing.supplier?.total_reviews || listing.quote_request_count || 5,
+        responseTime: '< 2 hours',
+        location: listing.supplier?.location || 'Kigali, Rwanda',
+        yearsInBusiness: 3
+      },
+      minOrder: {
+        quantity: listing.min_quantity || 1,
+        unit: listing.material?.unit || 'units'
+      },
+      category: listing.material?.category || 'General',
+      badges: ['Verified Supplier'],
+      inStock: listing.availability_status === 'available',
+      featured: listing.view_count > 10 || showFeaturedOnly
+    }));
+  };
+
+  const productCards = convertToProductCards(filteredListings);
+
+  const sortedResults = [...filteredListings].sort((a, b) => {
     switch (sortBy) {
       case 'price_asc':
         return a.price - b.price;
       case 'price_desc':
         return b.price - a.price;
       case 'rating':
-        return (b.supplier?.average_rating || 0) - (a.supplier?.average_rating || 0);
+        return 0; // No rating data available
       case 'recent':
       default:
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     }
   });
 
-  if (loading && searchResults.length === 0) {
+  if (loading && filteredListings.length === 0) {
     return (
       <Layout>
-        <PageContainer>
-          <Skeleton className="h-8 w-64 mb-6" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Skeleton className="h-96" />
-            <div className="lg:col-span-2 space-y-4">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-48" />)}
+        <div className="min-h-screen bg-neutral-50">
+          <div className="container-marketplace py-8">
+            <div className="skeleton h-8 w-64 mb-6"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="skeleton h-96"></div>
+              <div className="lg:col-span-3 space-y-4">
+                {[1, 2, 3].map(i => <div key={i} className="skeleton h-48"></div>)}
+              </div>
             </div>
           </div>
-        </PageContainer>
+        </div>
       </Layout>
     );
   }
 
   return (
     <Layout>
-      <div className="bg-neutral-50 min-h-screen pb-20 md:pb-0">
-        <PageContainer>
-          <div className="flex items-center justify-between py-4 mb-4">
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => navigate('/home')}
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-              <h1 className="text-2xl font-bold text-gray-900">Find Suppliers</h1>
+      <div className="min-h-screen bg-neutral-50">
+        {/* Header */}
+        <div className="bg-white border-b border-neutral-200">
+          <div className="container-marketplace py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => navigate('/home')}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </button>
+                <div>
+                  <h1 className="text-2xl font-bold text-neutral-900">
+                    {showFeaturedOnly ? 'Featured Products' : 'Browse Products'}
+                  </h1>
+                  <p className="text-neutral-600">
+                    {showFeaturedOnly 
+                      ? 'Discover our top-rated and most popular products' 
+                      : 'Find quality products from verified suppliers'
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {/* View Mode Toggle */}
+              <div className="hidden md:flex items-center gap-2 bg-neutral-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === 'grid' 
+                      ? 'bg-white text-orange-600 shadow-sm' 
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === 'list' 
+                      ? 'bg-white text-orange-600 shadow-sm' 
+                      : 'text-neutral-600 hover:text-neutral-900'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            <div className={`${showFilters ? 'block' : 'hidden'} lg:block`}>
-              <Card className="sticky top-20 p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-base font-semibold text-gray-900">Filters</h2>
-                  {activeFilterCount > 0 && (
-                    <button onClick={clearFilters} className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                      Clear
-                    </button>
-                  )}
-                </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Material</label>
-                    <select
-                      value={filters.material_id || ''}
-                      onChange={(e) => updateFilter('material_id', e.target.value)}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">All Materials</option>
-                      {materials.map(material => (
-                        <option key={material.id} value={material.id}>{material.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
-                    <Input
-                      placeholder="e.g., Kigali"
-                      value={filters.location || ''}
-                      onChange={(e) => updateFilter('location', e.target.value)}
-                      icon={<MapPin className="w-4 h-4" />}
-                      className="text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Price Range</label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Min"
-                        value={filters.min_price || ''}
-                        onChange={(e) => updateFilter('min_price', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="text-sm"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Max"
-                        value={filters.max_price || ''}
-                        onChange={(e) => updateFilter('max_price', e.target.value ? parseFloat(e.target.value) : undefined)}
-                        className="text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Min Rating</label>
-                    <select
-                      value={filters.min_rating || ''}
-                      onChange={(e) => updateFilter('min_rating', e.target.value ? parseFloat(e.target.value) : undefined)}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Any</option>
-                      <option value="4">4+</option>
-                      <option value="3">3+</option>
-                      <option value="2">2+</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center pt-1">
-                    <input
-                      type="checkbox"
-                      id="verified"
-                      checked={filters.verified_only || false}
-                      onChange={(e) => updateFilter('verified_only', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="verified" className="ml-2 text-xs text-gray-700">Verified only</label>
-                  </div>
-
-                  <Button onClick={handleSearch} fullWidth size="sm">
-                    <Search className="w-4 h-4 mr-1" />
-                    Apply
-                  </Button>
-                </div>
-              </Card>
+        {/* Search Filters with Results */}
+        <SearchFilters
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onFiltersChange={handleFiltersChange}
+          categories={categories}
+          locations={locations}
+          priceRange={priceRange}
+          onPriceRangeChange={handlePriceRangeChange}
+          resultCount={filteredListings.length}
+          isLoading={loading}
+        >
+          {/* Results Content */}
+          {filteredListings.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-24 h-24 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="w-12 h-12 text-neutral-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-neutral-900 mb-2">
+                {showFeaturedOnly ? 'No featured products found' : 'No products found'}
+              </h3>
+              <p className="text-neutral-600 mb-6">
+                {showFeaturedOnly 
+                  ? 'Try browsing all products or check back later for featured items'
+                  : 'Try adjusting your search filters or browse our categories'
+                }
+              </p>
+              <div className="flex gap-4 justify-center">
+                {showFeaturedOnly && (
+                  <button 
+                    onClick={() => navigate('/buyers/search')}
+                    className="btn-primary"
+                  >
+                    Browse All Products
+                  </button>
+                )}
+                <button 
+                  onClick={() => navigate('/marketplace/categories')}
+                  className="btn-secondary"
+                >
+                  Browse Categories
+                </button>
+              </div>
             </div>
-
-            <div className="lg:col-span-3">
-              <Card className="mb-4 p-3">
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm text-gray-600">
-                      <span className="font-semibold text-gray-900">{sortedResults.length}</span> results
-                    </p>
-                    
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="px-2 py-1 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="recent">Recent</option>
-                      <option value="price_asc">Price: Low</option>
-                      <option value="price_desc">Price: High</option>
-                      <option value="rating">Top Rated</option>
-                    </select>
-                  </div>
-
-                  <Button variant="secondary" size="sm" onClick={() => setShowFilters(!showFilters)} className="lg:hidden">
-                    <Filter className="w-4 h-4 mr-1" />
-                    Filters
-                    {activeFilterCount > 0 && <Badge variant="info" className="ml-1 text-xs">{activeFilterCount}</Badge>}
-                  </Button>
+          ) : (
+            <div className={viewMode === 'grid' ? 'product-grid' : 'space-y-4'}>
+              {productCards.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <ProductCard
+                    {...product}
+                    onAddToCart={() => {
+                      console.log('Added to cart:', product.id);
+                    }}
+                    onToggleFavorite={() => {
+                      console.log('Added to favorites:', product.id);
+                    }}
+                    onContactSupplier={() => {
+                      const listing = filteredListings.find(l => l.id === product.id);
+                      const messageParams = new URLSearchParams({
+                        userId: listing?.supplier_id || 'unknown',
+                        supplierName: listing?.supplier?.business_name || listing?.supplier?.full_name || listing?.supplier?.name || 'Supplier',
+                        context: 'product',
+                        productName: product.title,
+                        productId: product.id
+                      });
+                      navigate('/messages?' + messageParams.toString());
+                    }}
+                  />
                 </div>
-              </Card>
-
-              {sortedResults.length === 0 ? (
-                <EmptyState
-                  illustration="search"
-                  title="No suppliers found"
-                  description="Try adjusting your search filters or browse all categories"
-                  action={{ label: 'Browse Categories', onClick: () => navigate('/marketplace/categories') }}
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {sortedResults.map(listing => (
-                    <Card 
-                      key={listing.id} 
-                      className="p-3 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => navigate(`/buyers/listing/${listing.id}`)}
-                    >
-                      {listing.photos?.[0] && (
-                        <img 
-                          src={listing.photos[0]} 
-                          alt={listing.supplier?.business_name}
-                          className="w-full h-32 object-cover rounded mb-2"
-                        />
-                      )}
-                      
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm text-gray-900 truncate">
-                            {listing.supplier?.business_name || 'Supplier'}
-                          </h3>
-                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" />
-                            {listing.city || listing.location}
-                          </p>
-                        </div>
-                        {listing.supplier?.is_verified_supplier && (
-                          <Badge variant="success" className="text-xs flex items-center gap-0.5 ml-2">
-                            <CheckCircle className="w-3 h-3" />
-                            Verified
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mb-2 text-xs">
-                        <span className="text-gray-600">{listing.material?.name}</span>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                          <span className="text-gray-700">{listing.supplier?.average_rating?.toFixed(1) || '0.0'}</span>
-                        </div>
-                      </div>
-
-                      <div className="text-lg font-bold text-blue-600 mb-2">
-                        {formatCurrency(listing.price)}
-                        <span className="text-xs text-gray-500 font-normal ml-1">/ {listing.material?.unit}</span>
-                      </div>
-
-                      {user?.role !== 'admin' && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (user) {
-                                const params = new URLSearchParams({
-                                  userId: listing.supplier_id,
-                                  context: 'materials',
-                                  materialName: listing.material?.name || '',
-                                  price: formatCurrency(listing.price),
-                                  location: listing.location
-                                });
-                                navigate(`/messages?${params.toString()}`);
-                              } else {
-                                toast('error', 'Please log in');
-                              }
-                            }}
-                          >
-                            <MessageCircle className="w-3 h-3 mr-1" />
-                            Message
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/buyers/listing/${listing.id}`);
-                            }}
-                          >
-                            Quote
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
-          </div>
-        </PageContainer>
+          )}
+        </SearchFilters>
       </div>
-
-      {selectedImages && (
-        <ImageLightbox 
-          images={selectedImages.images} 
-          alt={selectedImages.alt}
-          onClose={() => setSelectedImages(null)}
-        />
-      )}
     </Layout>
   );
 }

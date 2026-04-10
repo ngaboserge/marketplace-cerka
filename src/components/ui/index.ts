@@ -39,6 +39,5 @@ export { FileUpload } from './FileUpload';
 export { SuccessCelebration, useSuccessCelebration } from './SuccessCelebration';
 export { ErrorMessage, InlineError } from './ErrorMessage';
 export { ListingCard } from './ListingCard';
-export { StatCard as SimpleStatCard } from './StatCard';
 export { MobileNav } from './MobileNav';
 export { DashboardGrid, DashboardSection } from './DashboardGrid';

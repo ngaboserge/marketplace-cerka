@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Input } from '@/components/ui';
 import { useAuthStore } from '@/store';
+import { ArrowLeft, AlertCircle, CheckCircle, ShoppingCart, BarChart3 } from '@/lib/icons';
 
 export function Login() {
   const navigate = useNavigate();
@@ -38,142 +38,219 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="w-full max-w-md animate-fadeInUp">
-          {/* Logo/Brand */}
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-block">
-              <img 
-                src="/assets/cerka-logo.png" 
-                alt="Cerka" 
-                className="h-12 w-auto mx-auto mb-4"
-              />
-            </Link>
-            <p className="text-neutral-600">{t('login.welcomeBack')}</p>
-          </div>
-
-          {/* Error Message */}
-          {(error || authError) && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm animate-fadeIn">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span>{error || authError}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label={t('login.email')}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('login.emailPlaceholder')}
-              required
-              className="transition-all"
-            />
-            <Input
-              label={t('login.password')}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('login.passwordPlaceholder')}
-              required
-              className="transition-all"
-            />
-            
-            <Button 
-              type="submit" 
-              fullWidth
-              size="lg"
-              loading={loading}
-              className="mt-6"
-            >
-              {t('login.signInButton')}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-neutral-600">
-              {t('login.noAccount')}{' '}
-              <Link 
-                to="/register" 
-                className="text-primary-700 hover:text-primary-800 font-semibold transition-colors"
-              >
-                {t('login.createOne')}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      <div className="flex min-h-screen relative">
+        {/* Connecting gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-100/50 to-transparent pointer-events-none z-10"></div>
+        {/* Left Side - Enhanced Form */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white to-slate-50 relative">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f97316' fill-opacity='0.1'%3E%3Ccircle cx='20' cy='20' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}></div>
+          
+          <div className="w-full max-w-md animate-fadeInUp relative z-10">
+            {/* Enhanced Logo/Brand */}
+            <div className="text-center mb-10">
+              <Link to="/" className="inline-block group">
+                <div className="relative">
+                  <div className="w-20 h-20 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-105 transition-all duration-300 shadow-2xl shadow-orange-500/25">
+                    <ShoppingCart className="w-10 h-10 text-white" />
+                  </div>
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 w-20 h-20 bg-gradient-to-br from-orange-500 via-red-500 to-pink-500 rounded-3xl mx-auto blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+                  Cerka
+                </h1>
+                <div className="flex items-center justify-center gap-2 text-slate-600">
+                  <div className="w-1 h-1 bg-orange-500 rounded-full"></div>
+                  <span className="text-sm font-medium">B2B Trading Platform</span>
+                  <div className="w-1 h-1 bg-orange-500 rounded-full"></div>
+                </div>
               </Link>
-            </p>
-          </div>
+              <p className="text-slate-600 mt-4 text-lg">{t('login.welcomeBack')}</p>
+            </div>
 
-          {/* Back to Home */}
-          <div className="mt-6 text-center">
-            <Link 
-              to="/" 
-              className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors inline-flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              {t('login.backToHome')}
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side - Illustration/Info */}
-      <div className="hidden lg:flex lg:flex-1 bg-blue-600 relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse-soft" />
-          <div className="absolute bottom-20 left-20 w-96 h-96 bg-white rounded-full blur-3xl animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        </div>
-
-        {/* Content */}
-        <div className="relative flex items-center justify-center p-12 text-white">
-          <div className="max-w-lg animate-fadeInRight">
-            <h2 className="text-4xl font-bold mb-6">
-              {t('login.accessEverything')}
-            </h2>
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
+            {/* Enhanced Error Message */}
+            {(error || authError) && (
+              <div className="mb-8 p-5 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-2xl text-red-700 text-sm animate-fadeIn shadow-lg shadow-red-100/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="font-semibold mb-1">Authentication Error</div>
+                    <div className="text-red-600">{error || authError}</div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{t('login.gigWorkFeature')}</h3>
-                  <p className="text-blue-100">{t('login.gigWorkDesc')}</p>
+              </div>
+            )}
+
+            {/* Enhanced Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-5">
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    {t('login.email')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={t('login.emailPlaceholder')}
+                      autoComplete="email"
+                      required
+                      className="w-full px-5 py-4 border-2 border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all duration-300 bg-white/80 backdrop-blur-sm text-slate-900 placeholder-slate-400 group-hover:border-slate-300"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
+                </div>
+                <div className="group">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    {t('login.password')}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={t('login.passwordPlaceholder')}
+                      autoComplete="current-password"
+                      required
+                      className="w-full px-5 py-4 border-2 border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all duration-300 bg-white/80 backdrop-blur-sm text-slate-900 placeholder-slate-400 group-hover:border-slate-300"
+                    />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-orange-500/5 to-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{t('login.marketplaceFeature')}</h3>
-                  <p className="text-blue-100">{t('login.marketplaceDesc')}</p>
-                </div>
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="group relative w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:from-orange-700 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-orange-500/25 hover:shadow-2xl hover:shadow-orange-500/40 transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Signing in...
+                    </div>
+                  ) : (
+                    t('login.signInButton')
+                  )}
+                </span>
+              </button>
+            </form>
+
+            {/* Enhanced Divider */}
+            <div className="mt-10 text-center">
+              <p className="text-slate-600">
+                {t('login.noAccount')}{' '}
+                <Link 
+                  to="/register" 
+                  className="text-orange-600 hover:text-orange-700 font-bold transition-colors hover:underline decoration-2 underline-offset-2"
+                >
+                  {t('login.createOne')}
+                </Link>
+              </p>
+            </div>
+
+            {/* Enhanced Back to Home */}
+            <div className="mt-8 text-center">
+              <Link 
+                to="/" 
+                className="text-slate-500 hover:text-slate-700 transition-colors inline-flex items-center gap-2 group text-sm font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                {t('login.backToHome')}
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Enhanced Modern Design */}
+        <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
+          {/* Sophisticated Background Pattern */}
+          <div className="absolute inset-0">
+            {/* Grid Pattern */}
+            <div className="absolute inset-0 opacity-5" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+            }}></div>
+            
+            {/* Animated Gradient Orbs */}
+            <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-r from-orange-500/20 to-red-500/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-20 left-20 w-96 h-96 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
+          </div>
+
+          {/* Content */}
+          <div className="relative flex items-center justify-center p-12 text-white">
+            <div className="max-w-lg animate-fade-in">
+              {/* Header */}
+              <div className="mb-8">
+                <h2 className="text-4xl font-bold leading-tight bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent mb-2">
+                  Cerka's Premier
+                </h2>
+                <h2 className="text-4xl font-bold leading-tight bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">
+                  B2B Marketplace
+                </h2>
               </div>
               
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+              <p className="text-xl text-blue-100 mb-10 leading-relaxed">
+                Connect with verified suppliers, discover quality products, and grow your business with confidence.
+              </p>
+              
+              {/* Feature Cards */}
+              <div className="space-y-6">
+                <div className="group flex items-start gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                    <ShoppingCart className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2 text-white">Marketplace Access</h3>
+                    <p className="text-blue-200 leading-relaxed">Browse thousands of products from verified suppliers across Rwanda with Cerka</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">{t('login.intelligenceFeature')}</h3>
-                  <p className="text-blue-100">{t('login.intelligenceDesc')}</p>
+                
+                <div className="group flex items-start gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                    <BarChart3 className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2 text-white">Market Intelligence</h3>
+                    <p className="text-blue-200 leading-relaxed">Get real-time price insights and market trends to make informed decisions</p>
+                  </div>
+                </div>
+                
+                <div className="group flex items-start gap-4 p-4 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all duration-300">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                    <CheckCircle className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-2 text-white">Trusted Network</h3>
+                    <p className="text-blue-200 leading-relaxed">Connect with verified businesses and build lasting partnerships</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="mt-10 pt-8 border-t border-white/10">
+                <div className="flex items-center gap-6 text-sm text-blue-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-orange-500" />
+                    <span>Verified Suppliers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-orange-500" />
+                    <span>Secure Platform</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-orange-500" />
+                    <span>Quality Guaranteed</span>
+                  </div>
                 </div>
               </div>
             </div>

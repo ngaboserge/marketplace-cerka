@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { SupplierListing, ListingAnalytics, SearchFilters, ListingForm } from '../types/materials.types';
 
 export const suppliersService = {
-  async createListing(formData: ListingForm, supplierId: string): Promise<SupplierListing> {
+  async createListing(formData: any, supplierId: string): Promise<SupplierListing> {
     // Handle photos - can be File objects or already-uploaded URLs
     let photoUrls: string[] = [];
     
@@ -17,19 +17,11 @@ export const suppliersService = {
       }
     }
 
+    // Use the data as provided by the frontend (which now includes title)
     const listingData = {
       supplier_id: supplierId,
-      material_id: formData.material_id,
-      price: formData.price,
-      min_quantity: formData.min_quantity,
-      location: formData.location,
-      city: formData.city,
-      area: formData.area,
-      delivery_info: formData.delivery_info,
+      ...formData,
       photos: photoUrls.length > 0 ? photoUrls : null,
-      contact_phone: formData.contact_phone,
-      contact_whatsapp: formData.contact_whatsapp,
-      status: 'active' as const
     };
 
     const { data, error } = await supabase
@@ -57,7 +49,16 @@ export const suppliersService = {
   async deleteListing(id: string): Promise<void> {
     const { error } = await supabase
       .from('supplier_listings')
-      .update({ status: 'deleted' } as any)
+      .update({ status: 'inactive' } as any)
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async reactivateListing(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('supplier_listings')
+      .update({ status: 'active' } as any)
       .eq('id', id);
 
     if (error) throw error;
@@ -66,13 +67,33 @@ export const suppliersService = {
   async getSupplierListings(supplierId: string): Promise<SupplierListing[]> {
     const { data, error } = await supabase
       .from('supplier_listings')
-      .select('*, material:materials(*)')
+      .select(`
+        *,
+        material:materials(*)
+      `)
       .eq('supplier_id', supplierId)
-      .neq('status', 'deleted')
+      .in('status', ['active', 'inactive'])
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    // Fetch supplier data separately for each listing
+    const listingsWithSupplier = await Promise.all(
+      (data || []).map(async (listing) => {
+        if (listing.supplier_id) {
+          const { data: supplier } = await supabase
+            .from('profiles')
+            .select('id, full_name, business_name, location, is_verified_supplier, average_rating, total_reviews')
+            .eq('id', listing.supplier_id)
+            .single();
+          
+          return { ...listing, supplier };
+        }
+        return listing;
+      })
+    );
+
+    return listingsWithSupplier;
   },
 
   async searchListings(filters: SearchFilters): Promise<SupplierListing[]> {
@@ -80,8 +101,7 @@ export const suppliersService = {
       .from('supplier_listings')
       .select(`
         *,
-        material:materials(*),
-        supplier:profiles!supplier_listings_supplier_id_fkey(id, business_name, is_verified_supplier, average_rating, phone)
+        material:materials(*)
       `)
       .eq('status', 'active');
 
@@ -97,9 +117,6 @@ export const suppliersService = {
     if (filters.max_price !== undefined) {
       query = query.lte('price', filters.max_price);
     }
-    if (filters.verified_only) {
-      // This will be filtered in post-processing since it's on the joined table
-    }
 
     query = query.order('created_at', { ascending: false });
 
@@ -107,24 +124,7 @@ export const suppliersService = {
 
     if (error) throw error;
 
-    let results = (data || []) as any[];
-
-    // Post-process filters
-    if (filters.verified_only) {
-      results = results.filter(listing => listing.supplier?.is_verified_supplier);
-    }
-    if (filters.min_rating !== undefined) {
-      results = results.filter(listing => (listing.supplier?.average_rating || 0) >= filters.min_rating!);
-    }
-
-    // Sort verified suppliers first
-    results.sort((a, b) => {
-      const aVerified = a.supplier?.is_verified_supplier ? 1 : 0;
-      const bVerified = b.supplier?.is_verified_supplier ? 1 : 0;
-      return bVerified - aVerified;
-    });
-
-    return results as SupplierListing[];
+    return (data || []) as SupplierListing[];
   },
 
   async getListingAnalytics(listingId: string): Promise<ListingAnalytics | null> {
@@ -211,13 +211,24 @@ export const suppliersService = {
       .from('supplier_listings')
       .select(`
         *,
-        material:materials(*),
-        supplier:profiles!supplier_listings_supplier_id_fkey(id, business_name, is_verified_supplier, average_rating, phone)
+        material:materials(*)
       `)
       .eq('id', id)
       .single();
 
     if (error) throw error;
+
+    // Fetch supplier data separately
+    if (data && data.supplier_id) {
+      const { data: supplier } = await supabase
+        .from('profiles')
+        .select('id, full_name, business_name, location, is_verified_supplier, average_rating, total_reviews')
+        .eq('id', data.supplier_id)
+        .single();
+      
+      return { ...data, supplier };
+    }
+
     return data;
   }
 };

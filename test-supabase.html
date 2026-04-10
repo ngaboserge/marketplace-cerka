@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testSignup()">Test Signup</button>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function testConnection() {
+            const result = document.getElementById('result');
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    result.innerHTML = `<p style="color: red;">Connection Error: ${error.message}</p>`;
+                } else {
+                    result.innerHTML = `<p style="color: green;">Connection successful!</p>`;
+                }
+            } catch (err) {
+                result.innerHTML = `<p style="color: red;">Connection failed: ${err.message}</p>`;
+            }
+        }
+
+        async function testSignup() {
+            const result = document.getElementById('result');
+            const testEmail = `test${Date.now()}@example.com`;
+            const testPassword = 'password123';
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: testEmail,
+                    password: testPassword,
+                });
+                
+                if (error) {
+                    result.innerHTML = `<p style="color: red;">Signup Error: ${error.message}</p>`;
+                } else {
+                    result.innerHTML = `<p style="color: green;">Signup successful! User ID: ${data.user?.id}</p>`;
+                }
+            } catch (err) {
+                result.innerHTML = `<p style="color: red;">Signup failed: ${err.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

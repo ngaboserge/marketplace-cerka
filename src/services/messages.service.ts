@@ -14,13 +14,15 @@ export interface DbMessage {
 
 export interface DbConversation {
   id: string;
-  participant_1_id: string;
-  participant_2_id: string;
-  shift_id?: string;
+  participant_1: string;  // Using the actual column name from your table
+  participant_2: string;  // Using the actual column name from your table
+  participant_1_id?: string;  // Optional for backward compatibility
+  participant_2_id?: string;  // Optional for backward compatibility
+  quote_request_id?: string;
   last_message?: string;
   last_message_at?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   // Enriched data
   participants?: {
     id: string;
@@ -38,17 +40,17 @@ export const messagesService = {
 
   async getConversations(userId: string): Promise<DbConversation[]> {
     try {
-      // Get conversations where user is participant 1 or 2
+      // Get conversations where user is participant 1 or 2 (using the correct column names)
       const { data: conv1, error: error1 } = await supabase
         .from('conversations')
         .select('*')
-        .eq('participant_1_id', userId)
+        .eq('participant_1', userId)
         .order('last_message_at', { ascending: false });
 
       const { data: conv2, error: error2 } = await supabase
         .from('conversations')
         .select('*')
-        .eq('participant_2_id', userId)
+        .eq('participant_2', userId)
         .order('last_message_at', { ascending: false });
 
       if (error1) {
@@ -71,13 +73,25 @@ export const messagesService = {
       );
 
       console.log('Found conversations:', uniqueConversations.length);
+      
+      // Log the raw conversation data
+      uniqueConversations.forEach((conv, index) => {
+        console.log(`Conversation ${index}:`, {
+          id: conv.id,
+          participant_1: conv.participant_1,
+          participant_2: conv.participant_2,
+          last_message: conv.last_message,
+          last_message_at: conv.last_message_at,
+          created_at: conv.created_at
+        });
+      });
 
       // Enrich with participant info
       const enrichedConversations = await Promise.all(
         uniqueConversations.map(async (conv) => {
-          const otherParticipantId = conv.participant_1_id === userId 
-            ? conv.participant_2_id 
-            : conv.participant_1_id;
+          const otherParticipantId = conv.participant_1 === userId 
+            ? conv.participant_2 
+            : conv.participant_1;
           
           let participant = { id: otherParticipantId, name: 'Unknown User', role: 'unknown' };
 
@@ -174,41 +188,91 @@ export const messagesService = {
 
   async getOrCreateConversation(
     userId: string, 
-    otherUserId: string, 
-    shiftId?: string
+    otherUserId: string
   ): Promise<DbConversation> {
-    // Check if conversation exists (either direction)
-    const { data: existing1 } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('participant_1_id', userId)
-      .eq('participant_2_id', otherUserId)
-      .maybeSingle();
+    try {
+      // Prevent self-messaging
+      if (userId === otherUserId) {
+        throw new Error('Cannot create conversation with yourself');
+      }
 
-    if (existing1) return existing1 as DbConversation;
+      // Check if conversation exists (either direction) using a more comprehensive query
+      const { data: existing, error: searchError } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`and(participant_1.eq.${userId},participant_2.eq.${otherUserId}),and(participant_1.eq.${otherUserId},participant_2.eq.${userId})`)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-    const { data: existing2 } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('participant_1_id', otherUserId)
-      .eq('participant_2_id', userId)
-      .maybeSingle();
+      if (existing && !searchError) {
+        return existing as DbConversation;
+      }
 
-    if (existing2) return existing2 as DbConversation;
+      // Double-check with individual queries to be extra sure
+      const { data: existing1 } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('participant_1', userId)
+        .eq('participant_2', otherUserId)
+        .maybeSingle();
 
-    // Create new conversation
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({
-        participant_1_id: userId,
-        participant_2_id: otherUserId,
-        shift_id: shiftId,
-      } as any)
-      .select()
-      .single();
+      if (existing1) return existing1 as DbConversation;
 
-    if (error) throw error;
-    return data as DbConversation;
+      const { data: existing2 } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('participant_1', otherUserId)
+        .eq('participant_2', userId)
+        .maybeSingle();
+
+      if (existing2) return existing2 as DbConversation;
+
+      // Create new conversation using correct column names
+      // Always put the smaller UUID first to prevent duplicates
+      const [participant1, participant2] = [userId, otherUserId].sort();
+      
+      const conversationData = {
+        participant_1: participant1,
+        participant_2: participant2,
+        created_at: new Date().toISOString(),
+        last_message_at: new Date().toISOString()
+      };
+
+      console.log('Creating new conversation:', conversationData);
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert(conversationData)
+        .select()
+        .single();
+
+      if (error) {
+        // If it's a duplicate key error or any constraint violation, try to fetch the existing conversation
+        if (error.code === '23505' || error.code === '23503') {
+          console.log('Conversation might already exist, fetching...');
+          const { data: existingConv } = await supabase
+            .from('conversations')
+            .select('*')
+            .or(`and(participant_1.eq.${userId},participant_2.eq.${otherUserId}),and(participant_1.eq.${otherUserId},participant_2.eq.${userId})`)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .single();
+          
+          if (existingConv) {
+            return existingConv as DbConversation;
+          }
+        }
+        
+        console.error('Error creating conversation:', error);
+        throw error;
+      }
+
+      return data as DbConversation;
+    } catch (error) {
+      console.error('Error in getOrCreateConversation:', error);
+      throw error;
+    }
   },
 
   // =====================================================
@@ -260,6 +324,7 @@ export const messagesService = {
     await supabase
       .from('conversations')
       .update({
+        last_message: content,
         last_message_at: new Date().toISOString(),
       } as any)
       .eq('id', conversationId);
@@ -267,14 +332,14 @@ export const messagesService = {
     // Get conversation to find recipient
     const { data: conversation } = await supabase
       .from('conversations')
-      .select('participant_1_id, participant_2_id')
+      .select('participant_1, participant_2')
       .eq('id', conversationId)
       .single();
 
     if (conversation) {
-      const recipientId = conversation.participant_1_id === senderId 
-        ? conversation.participant_2_id 
-        : conversation.participant_1_id;
+      const recipientId = conversation.participant_1 === senderId 
+        ? conversation.participant_2 
+        : conversation.participant_1;
 
       // Get sender name
       let senderName = 'Someone';
@@ -347,8 +412,10 @@ export const messagesService = {
 
   // Subscribe to new messages
   subscribeToMessages(conversationId: string, callback: (message: DbMessage) => void) {
+    const channelName = `messages_${conversationId}_${Date.now()}`;
+    
     return supabase
-      .channel(`messages:${conversationId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -366,20 +433,34 @@ export const messagesService = {
 
   // Subscribe to conversation updates
   subscribeToConversations(userId: string, callback: (conversation: DbConversation) => void) {
+    const channelName = `conversations_${userId}_${Date.now()}`;
+    
     return supabase
-      .channel(`conversations:${userId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'conversations',
+          filter: `participant_1=eq.${userId}`,
         },
         (payload) => {
           const conv = payload.new as DbConversation;
-          if (conv.participant_1_id === userId || conv.participant_2_id === userId) {
-            callback(conv);
-          }
+          callback(conv);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_2=eq.${userId}`,
+        },
+        (payload) => {
+          const conv = payload.new as DbConversation;
+          callback(conv);
         }
       )
       .subscribe();

@@ -14,6 +14,7 @@ interface SuppliersState {
   createListing: (formData: ListingForm, supplierId: string) => Promise<SupplierListing>;
   updateListing: (id: string, updates: Partial<ListingForm>) => Promise<SupplierListing>;
   deleteListing: (id: string) => Promise<void>;
+  reactivateListing: (id: string) => Promise<void>;
   fetchSupplierListings: (supplierId: string) => Promise<void>;
   searchListings: (filters: SearchFilters) => Promise<void>;
   fetchListing: (id: string) => Promise<void>;
@@ -65,8 +66,28 @@ export const useSuppliersStore = create<SuppliersState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       await suppliersService.deleteListing(id);
+      // Update the listing status to inactive instead of removing it
       set((state) => ({
-        listings: state.listings.filter(l => l.id !== id),
+        listings: state.listings.map(l => 
+          l.id === id ? { ...l, status: 'inactive' } : l
+        ),
+        loading: false
+      }));
+    } catch (error: any) {
+      set({ error: error.message, loading: false });
+      throw error;
+    }
+  },
+
+  reactivateListing: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      await suppliersService.reactivateListing(id);
+      // Update the listing status to active
+      set((state) => ({
+        listings: state.listings.map(l => 
+          l.id === id ? { ...l, status: 'active' } : l
+        ),
         loading: false
       }));
     } catch (error: any) {

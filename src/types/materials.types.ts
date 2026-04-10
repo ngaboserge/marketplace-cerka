@@ -87,9 +87,17 @@ export interface SupplierListing {
   id: string;
   supplier_id: string;
   material_id: string;
+  title: string;
+  description?: string;
   price: number;
   min_quantity?: number;
-  location: string;
+  max_quantity?: number;
+  stock_quantity?: number;
+  availability_status?: string;
+  delivery_available?: boolean;
+  delivery_cost?: number;
+  delivery_time_days?: number;
+  location?: string;
   city?: string;
   area?: string;
   delivery_info?: string;
@@ -97,15 +105,19 @@ export interface SupplierListing {
   contact_phone?: string;
   contact_whatsapp?: string;
   status: 'active' | 'inactive' | 'deleted';
+  view_count?: number;
+  quote_request_count?: number;
   created_at: string;
   updated_at: string;
   material?: Material;
   supplier?: {
     id: string;
-    full_name: string;
+    full_name?: string;
     business_name?: string;
+    location?: string;
     is_verified_supplier: boolean;
     average_rating: number;
+    total_reviews?: number;
   };
 }
 
@@ -204,6 +216,7 @@ export interface ListingForm {
   city?: string;
   area?: string;
   delivery_info?: string;
+  description?: string;
   photos?: File[] | string[]; // Support both File objects and URLs
   contact_phone?: string;
   contact_whatsapp?: string;

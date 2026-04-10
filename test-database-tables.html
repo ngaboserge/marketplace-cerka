@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Database Tables</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Testing Database Tables</h1>
+    <div id="output"></div>
+    <button onclick="testTables()">Test Tables</button>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testTables() {
+            try {
+                log('🧪 Testing database tables...');
+
+                // Test wishlist_items table
+                log('Testing wishlist_items table...');
+                const { data: wishlistData, error: wishlistError } = await supabase
+                    .from('wishlist_items')
+                    .select('*')
+                    .limit(1);
+                
+                if (wishlistError) {
+                    log('❌ Wishlist error: ' + JSON.stringify(wishlistError));
+                } else {
+                    log('✅ Wishlist table accessible');
+                }
+
+                // Test cart_items table
+                log('Testing cart_items table...');
+                const { data: cartData, error: cartError } = await supabase
+                    .from('cart_items')
+                    .select('*')
+                    .limit(1);
+                
+                if (cartError) {
+                    log('❌ Cart error: ' + JSON.stringify(cartError));
+                } else {
+                    log('✅ Cart table accessible');
+                }
+
+                // Test notifications table
+                log('Testing notifications table...');
+                const { data: notifData, error: notifError } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .limit(1);
+                
+                if (notifError) {
+                    log('❌ Notifications error: ' + JSON.stringify(notifError));
+                } else {
+                    log('✅ Notifications table accessible');
+                }
+
+                // Test with a real user ID
+                log('Testing with real user...');
+                const { data: profiles, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .limit(1);
+                
+                if (profilesError || !profiles || profiles.length === 0) {
+                    log('❌ No profiles found: ' + JSON.stringify(profilesError));
+                    return;
+                }
+                
+                const userId = profiles[0].id;
+                log('Using user ID: ' + userId);
+
+                // Test wishlist query with real user
+                const { data: userWishlist, error: userWishlistError } = await supabase
+                    .from('wishlist_items')
+                    .select('*')
+                    .eq('user_id', userId);
+                
+                if (userWishlistError) {
+                    log('❌ User wishlist error: ' + JSON.stringify(userWishlistError));
+                } else {
+                    log('✅ User wishlist query works, found ' + (userWishlist?.length || 0) + ' items');
+                }
+
+                log('🎉 All tests completed!');
+
+            } catch (error) {
+                log('❌ Test failed: ' + error.message);
+            }
+        }
+
+        // Auto-run tests
+        testTables();
+    </script>
+</body>
+</html>

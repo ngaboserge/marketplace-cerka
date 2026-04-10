@@ -26,3 +26,4 @@ interface ApplicationCardProps {
   onConfirm?: () => void;
   onReject?: () => void;
   onMessage?: () => void;
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Stores Functionality</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Testing Wishlist, Cart, and Notifications</h1>
+    <div id="output"></div>
+    <button onclick="testWishlist()">Test Wishlist</button>
+    <button onclick="testCart()">Test Cart</button>
+    <button onclick="testNotifications()">Test Notifications</button>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testWishlist() {
+            try {
+                log('Testing wishlist functionality...');
+                
+                // First, let's check if we have any listings to work with
+                const { data: listings, error: listingsError } = await supabase
+                    .from('supplier_listings')
+                    .select('id, title')
+                    .limit(1);
+                
+                if (listingsError) {
+                    log('Error fetching listings: ' + JSON.stringify(listingsError));
+                    return;
+                }
+                
+                if (!listings || listings.length === 0) {
+                    log('No listings found to test with');
+                    return;
+                }
+                
+                const testListing = listings[0];
+                log('Using test listing: ' + testListing.title);
+                
+                // Test adding to wishlist (this will fail without auth, but we can see the structure)
+                const { data: wishlistData, error: wishlistError } = await supabase
+                    .from('wishlist_items')
+                    .select('*')
+                    .limit(5);
+                
+                if (wishlistError) {
+                    log('Wishlist query error: ' + JSON.stringify(wishlistError));
+                } else {
+                    log('✓ Wishlist table accessible, found ' + (wishlistData?.length || 0) + ' items');
+                }
+                
+            } catch (error) {
+                log('Wishlist test failed: ' + error.message);
+            }
+        }
+
+        async function testCart() {
+            try {
+                log('Testing cart functionality...');
+                
+                const { data: cartData, error: cartError } = await supabase
+                    .from('cart_items')
+                    .select('*')
+                    .limit(5);
+                
+                if (cartError) {
+                    log('Cart query error: ' + JSON.stringify(cartError));
+                } else {
+                    log('✓ Cart table accessible, found ' + (cartData?.length || 0) + ' items');
+                }
+                
+            } catch (error) {
+                log('Cart test failed: ' + error.message);
+            }
+        }
+
+        async function testNotifications() {
+            try {
+                log('Testing notifications functionality...');
+                
+                const { data: notifData, error: notifError } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .limit(5);
+                
+                if (notifError) {
+                    log('Notifications query error: ' + JSON.stringify(notifError));
+                } else {
+                    log('✓ Notifications table accessible, found ' + (notifData?.length || 0) + ' items');
+                }
+                
+            } catch (error) {
+                log('Notifications test failed: ' + error.message);
+            }
+        }
+
+        // Test all on load
+        async function runAllTests() {
+            log('Running all tests...');
+            await testWishlist();
+            await testCart();
+            await testNotifications();
+            log('All tests completed!');
+        }
+
+        runAllTests();
+    </script>
+</body>
+</html>

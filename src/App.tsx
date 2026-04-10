@@ -23,9 +23,7 @@ import { Notifications } from '@/pages/Notifications';
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/Dashboard';
-import AdminUsers from '@/pages/admin/Users';
 import AdminSupport from '@/pages/admin/Support';
-import AdminListings from '@/pages/admin/Listings';
 import MarketplaceUsers from '@/pages/admin/MarketplaceUsers';
 import { AdminFloatingButton } from '@/components/AdminFloatingButton';
 import { Chatbot } from '@/components/Chatbot';
@@ -39,8 +37,12 @@ import MySubmissions from '@/pages/materials/MySubmissions';
 import BuyerSearch from '@/pages/buyers/BuyerSearch';
 import ListingDetail from '@/pages/buyers/ListingDetail';
 import QuoteHistory from '@/pages/buyers/QuoteHistory';
+import { Wishlist } from '@/pages/buyers/Wishlist';
+import { Cart } from '@/pages/buyers/Cart';
 import MyListings from '@/pages/suppliers/MyListings';
 import CreateListing from '@/pages/suppliers/CreateListing';
+import { EditListing } from '@/pages/suppliers/EditListing';
+import { ListingAnalytics } from '@/pages/suppliers/ListingAnalytics';
 import PriceModeration from '@/pages/admin/PriceModeration';
 import SupplierVerification from '@/pages/admin/SupplierVerification';
 import MaterialsModeration from '@/pages/admin/MaterialsModeration';
@@ -51,6 +53,7 @@ import QuoteRequests from '@/pages/admin/QuoteRequests';
 import AllCategories from '@/pages/marketplace/AllCategories';
 import SectorBrowse from '@/pages/marketplace/SectorBrowse';
 import { MarketplaceProfile } from '@/pages/marketplace/MarketplaceProfile';
+import { ProductDetail } from '@/pages/marketplace/ProductDetail';
 
 // Intelligence pages
 import SignalsDashboard from '@/pages/intelligence/SignalsDashboard';
@@ -108,11 +111,16 @@ function DarkModeWrapper({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <DarkModeWrapper>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<NewLanding />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/help" element={<HelpCenter />} />
@@ -134,7 +142,6 @@ export default function App() {
           <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute role="admin"><MarketplaceUsers /></ProtectedRoute>} />
           <Route path="/admin/support" element={<ProtectedRoute role="admin"><AdminSupport /></ProtectedRoute>} />
-          <Route path="/admin/listings" element={<ProtectedRoute role="admin"><AdminListings /></ProtectedRoute>} />
           <Route path="/admin/price-moderation" element={<ProtectedRoute role="admin"><PriceModeration /></ProtectedRoute>} />
           <Route path="/admin/supplier-verification" element={<ProtectedRoute role="admin"><SupplierVerification /></ProtectedRoute>} />
           <Route path="/admin/materials" element={<ProtectedRoute role="admin"><MaterialsModeration /></ProtectedRoute>} />
@@ -154,13 +161,18 @@ export default function App() {
           <Route path="/buyers/search" element={<ProtectedRoute><BuyerSearch /></ProtectedRoute>} />
           <Route path="/buyers/listing/:id" element={<ProtectedRoute><ListingDetail /></ProtectedRoute>} />
           <Route path="/buyers/quotes" element={<ProtectedRoute><QuoteHistory /></ProtectedRoute>} />
+          <Route path="/buyers/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
+          <Route path="/buyers/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           
           {/* Supplier routes */}
           <Route path="/suppliers/listings" element={<ProtectedRoute role="supplier"><MyListings /></ProtectedRoute>} />
           <Route path="/suppliers/create" element={<ProtectedRoute role="supplier"><CreateListing /></ProtectedRoute>} />
+          <Route path="/suppliers/edit/:id" element={<ProtectedRoute role="supplier"><EditListing /></ProtectedRoute>} />
+          <Route path="/suppliers/analytics/:id" element={<ProtectedRoute role="supplier"><ListingAnalytics /></ProtectedRoute>} />
           
           {/* Multi-Sector Marketplace routes */}
           <Route path="/marketplace/categories" element={<ProtectedRoute><AllCategories /></ProtectedRoute>} />
+          <Route path="/marketplace/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
           <Route path="/marketplace/:sector" element={<ProtectedRoute><SectorBrowse /></ProtectedRoute>} />
           <Route path="/marketplace/profile" element={<ProtectedRoute><MarketplaceProfile /></ProtectedRoute>} />
           

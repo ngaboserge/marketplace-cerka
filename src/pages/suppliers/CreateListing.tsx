@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSuppliersStore, useMaterialsStore, useAuthStore } from '../../store';
 import { supabase } from '../../lib/supabase';
-import { Card } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
+import { Header } from '../../components/layout/Header';
+import { Footer } from '../../components/layout/Footer';
 import { Textarea } from '../../components/ui/Textarea';
 import { toast } from '../../components/ui/Toast';
 import { 
-  ArrowLeft, DollarSign, Package, Truck, Building, Wheat, Meat, Smartphone, 
-  Car, Home as HomeIcon, Tool, Cow, Lightning, Hammer, Box, Hospital, Tractor, Shirt, Camera
+  ArrowLeft, DollarSign, Building, Wheat, Meat, Smartphone, 
+  Car, Home as HomeIcon, Tool, Cow, Lightning, Hammer, Box,
+  Camera, MessageCircle, CheckCircle, Plus, X
 } from '../../lib/icons';
 import type { ListingForm } from '../../types/materials.types';
 
@@ -33,34 +33,57 @@ export default function CreateListing() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreview, setPhotoPreview] = useState<string[]>([]);
-  const [fileInputKey, setFileInputKey] = useState(Date.now()); // Force re-render of input
+  const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [isDragging, setIsDragging] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+
+  const selectedMaterial = materials.find(m => m.id === formData.material_id);
 
   useEffect(() => {
     fetchMaterials();
   }, []);
 
-  // Group materials by sector
+  // Update available categories when materials or sector changes
+  useEffect(() => {
+    if (selectedSector && materials.length > 0) {
+      const sectorMaterials = materials.filter(m => m.sector === selectedSector);
+      const categories = [...new Set(sectorMaterials.map(m => m.category))].sort();
+      setAvailableCategories(categories);
+      
+      // Reset category selection if current category is not available
+      if (selectedCategory && !categories.includes(selectedCategory)) {
+        setSelectedCategory('');
+        updateField('material_id', '');
+      }
+    } else {
+      setAvailableCategories([]);
+      setSelectedCategory('');
+    }
+  }, [selectedSector, materials]);
+
+  // Group materials by sector, then by category
   const sectors = [
     { value: 'construction', label: 'Construction', icon: <Building className="w-4 h-4" /> },
     { value: 'agriculture', label: 'Agriculture', icon: <Wheat className="w-4 h-4" /> },
     { value: 'food', label: 'Food & Commodities', icon: <Meat className="w-4 h-4" /> },
     { value: 'electronics', label: 'Electronics', icon: <Smartphone className="w-4 h-4" /> },
     { value: 'vehicles', label: 'Vehicles', icon: <Car className="w-4 h-4" /> },
-    { value: 'rentals', label: 'House Rentals', icon: <HomeIcon className="w-4 h-4" /> },
+    { value: 'rentals', label: 'Real Estate', icon: <HomeIcon className="w-4 h-4" /> },
     { value: 'services', label: 'Services', icon: <Tool className="w-4 h-4" /> },
     { value: 'livestock', label: 'Livestock', icon: <Cow className="w-4 h-4" /> },
     { value: 'energy', label: 'Energy & Utilities', icon: <Lightning className="w-4 h-4" /> },
     { value: 'hardware', label: 'Hardware & Tools', icon: <Hammer className="w-4 h-4" /> },
-    { value: 'goods', label: 'Manufactured Goods', icon: <Box className="w-4 h-4" /> },
-    { value: 'health', label: 'Health & Hygiene', icon: <Hospital className="w-4 h-4" /> },
-    { value: 'automotive', label: 'Automotive & Transport', icon: <Tractor className="w-4 h-4" /> },
-    { value: 'textiles', label: 'Textiles & Tailoring', icon: <Shirt className="w-4 h-4" /> }
   ];
 
-  // Filter materials by selected sector
+  // Filter materials by selected sector and category
   const filteredMaterials = selectedSector
-    ? materials.filter(m => m.sector === selectedSector)
+    ? materials.filter(m => {
+        const matchesSector = m.sector === selectedSector;
+        const matchesCategory = !selectedCategory || m.category === selectedCategory;
+        return matchesSector && matchesCategory;
+      })
     : [];
 
   const updateField = (field: keyof ListingForm, value: any) => {
@@ -88,7 +111,6 @@ export default function CreateListing() {
   };
 
   const handleCreateCustomMaterial = async () => {
-    // Validate custom material fields
     const newErrors: Record<string, string> = {};
     if (!customMaterialName.trim()) newErrors.custom_material_name = 'Material name is required';
     if (!customMaterialUnit) newErrors.custom_material_unit = 'Unit is required';
@@ -101,12 +123,10 @@ export default function CreateListing() {
       return;
     }
 
-    // Determine the final unit to use
     const finalUnit = customMaterialUnit === 'custom' ? customUnitInput.trim() : customMaterialUnit;
 
     setCreatingCustomMaterial(true);
     try {
-      // Use the materials service to create the custom material
       const { materialsService } = await import('../../services/materials.service');
       
       const newMaterial = await materialsService.createMaterial({
@@ -117,15 +137,12 @@ export default function CreateListing() {
         icon: '📦'
       });
 
-      // Refresh materials list
       await fetchMaterials();
       
-      // Select the newly created material
       if (newMaterial && newMaterial.id) {
         updateField('material_id', newMaterial.id);
       }
       
-      // Reset custom material form
       setShowCustomMaterial(false);
       setCustomMaterialName('');
       setCustomMaterialUnit('');
@@ -152,7 +169,7 @@ export default function CreateListing() {
         const fileExt = file.name.split('.').pop();
         const fileName = `${user!.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
           .from('listing-photos')
           .upload(fileName, file, {
             cacheControl: '3600',
@@ -161,7 +178,6 @@ export default function CreateListing() {
 
         if (error) throw error;
 
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('listing-photos')
           .getPublicUrl(fileName);
@@ -173,7 +189,7 @@ export default function CreateListing() {
     } catch (error: any) {
       console.error('Error uploading photos:', error);
       toast('error', 'Failed to upload some photos');
-      return uploadedUrls; // Return whatever was uploaded successfully
+      return uploadedUrls;
     } finally {
       setUploadingPhotos(false);
     }
@@ -185,14 +201,12 @@ export default function CreateListing() {
       return false;
     }
 
-    // Check total count (existing + new)
     const totalCount = photoFiles.length + newFiles.length;
     if (totalCount > 5) {
       toast('error', `Maximum 5 photos allowed. You can add ${5 - photoFiles.length} more.`);
       return false;
     }
 
-    // Validate file types
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/jpe', 'image/pjpeg'];
     const invalidFiles = newFiles.filter(f => !validTypes.includes(f.type.toLowerCase()));
     if (invalidFiles.length > 0) {
@@ -200,18 +214,15 @@ export default function CreateListing() {
       return false;
     }
 
-    // Validate file sizes
     const oversizedFiles = newFiles.filter(f => f.size > 5 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       toast('error', 'Some files exceed 5MB limit');
       return false;
     }
 
-    // Merge with existing files
     const allFiles = [...photoFiles, ...newFiles];
     setPhotoFiles(allFiles);
 
-    // Create preview URLs for new files
     const newPreviews = newFiles.map(file => URL.createObjectURL(file));
     const allPreviews = [...photoPreview, ...newPreviews];
     setPhotoPreview(allPreviews);
@@ -223,7 +234,6 @@ export default function CreateListing() {
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (validateAndAddFiles(files)) {
-      // Reset input to allow selecting same files again
       e.target.value = '';
     }
   };
@@ -258,13 +268,11 @@ export default function CreateListing() {
     const newFiles = photoFiles.filter((_, i) => i !== index);
     const newPreviews = photoPreview.filter((_, i) => i !== index);
     
-    // Revoke the URL to free memory
     URL.revokeObjectURL(photoPreview[index]);
     
     setPhotoFiles(newFiles);
     setPhotoPreview(newPreviews);
     
-    // Reset file input to allow re-selection
     setFileInputKey(Date.now());
   };
 
@@ -277,23 +285,29 @@ export default function CreateListing() {
     if (!validate()) return;
 
     try {
-      // Upload photos first if any
       let photoUrls: string[] = [];
       if (photoFiles.length > 0) {
         toast('info', 'Uploading photos...');
         photoUrls = await uploadPhotos();
       }
 
-      // Add photo URLs to form data
-      const listingData: Partial<ListingForm> = {
-        ...formData,
-        photos: photoUrls.length > 0 ? photoUrls : undefined
+      // Map form data to match supplier_listings table structure
+      const materialName = selectedMaterial?.name || 'Custom Product';
+      const listingData = {
+        material_id: formData.material_id!,
+        title: `${materialName} - ${formData.location || 'Rwanda'}`,
+        description: formData.description || `High quality ${materialName.toLowerCase()} available for purchase.`,
+        price: formData.price!,
+        min_quantity: 1,
+        photos: photoUrls.length > 0 ? photoUrls : null,
+        delivery_available: true,
+        delivery_cost: null,
+        delivery_time_days: 3
       };
 
-      await createListing(listingData as ListingForm, user.id);
+      await createListing(listingData as any, user.id);
       toast('success', 'Listing created successfully!');
       
-      // Clean up preview URLs
       photoPreview.forEach(url => URL.revokeObjectURL(url));
       
       setTimeout(() => {
@@ -304,436 +318,597 @@ export default function CreateListing() {
     }
   };
 
-  const selectedMaterial = materials.find(m => m.id === formData.material_id);
-
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <Button variant="secondary" size="sm" onClick={() => navigate('/suppliers/listings')} className="mb-6">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Listings
-      </Button>
-
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Create Supplier Listing</h1>
-        <p className="text-gray-600 mt-1">List your materials for buyers to find</p>
-        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-blue-900">Buyers will contact you through our messaging system</p>
-            <p className="text-xs text-blue-700 mt-1">All communication happens securely within the platform - no need to share phone numbers</p>
+    <div className="min-h-screen bg-neutral-50">
+      <Header />
+      
+      <div className="container-marketplace section-padding">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-6">
+            <button 
+              onClick={() => navigate('/suppliers/listings')} 
+              className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Back to Listings</span>
+            </button>
           </div>
+
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 mb-4">
+              Create New Listing
+            </h1>
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+              Showcase your products to thousands of buyers across Rwanda
+            </p>
+          </div>
+
+          {/* Trust Banner */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900 mb-2">Secure & Professional</h3>
+                <p className="text-neutral-700 mb-3">
+                  Your listing will be visible to verified buyers. All communication happens through our secure messaging system.
+                </p>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>No personal contact sharing required</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Secure payment processing</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Professional buyer verification</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Form */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+            <div className="p-8 space-y-8">
+              {/* Sector Selection */}
+              <div>
+                <label className="block text-lg font-bold text-neutral-900 mb-4">
+                  1. Choose Your Product Category
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {sectors.map(sector => (
+                    <button
+                      key={sector.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSector(sector.value);
+                        setSelectedCategory('');
+                        updateField('material_id', '');
+                      }}
+                      className={`
+                        p-4 rounded-xl border-2 transition-all text-center hover:shadow-md
+                        ${selectedSector === sector.value 
+                          ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-500/20' 
+                          : 'border-neutral-200 bg-white hover:border-neutral-300'
+                        }
+                      `}
+                    >
+                      <div className={`w-8 h-8 mx-auto mb-2 flex items-center justify-center rounded-lg ${
+                        selectedSector === sector.value ? 'bg-blue-100 text-blue-600' : 'bg-neutral-100 text-neutral-600'
+                      }`}>
+                        {sector.icon}
+                      </div>
+                      <div className={`text-sm font-medium ${
+                        selectedSector === sector.value ? 'text-blue-900' : 'text-neutral-900'
+                      }`}>
+                        {sector.label}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-neutral-500 mt-3">
+                  Select the category that best matches your product
+                </p>
+              </div>
+
+              {/* Category Selection */}
+              {selectedSector && (
+                <div>
+                  <label className="block text-lg font-bold text-neutral-900 mb-4">
+                    2. Choose Product Category
+                  </label>
+                  {availableCategories.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {availableCategories.map(category => (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory(category);
+                            updateField('material_id', '');
+                          }}
+                          className={`
+                            p-4 rounded-xl border-2 transition-all text-center hover:shadow-md
+                            ${selectedCategory === category 
+                              ? 'border-green-500 bg-green-50 shadow-md ring-2 ring-green-500/20' 
+                              : 'border-neutral-200 bg-white hover:border-neutral-300'
+                            }
+                          `}
+                        >
+                          <div className={`w-8 h-8 mx-auto mb-2 flex items-center justify-center rounded-lg ${
+                            selectedCategory === category ? 'bg-green-100 text-green-600' : 'bg-neutral-100 text-neutral-600'
+                          }`}>
+                            <Box className="w-4 h-4" />
+                          </div>
+                          <div className={`text-sm font-medium ${
+                            selectedCategory === category ? 'text-green-900' : 'text-neutral-900'
+                          }`}>
+                            {category}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-neutral-50 rounded-xl border-2 border-dashed border-neutral-300">
+                      <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Box className="w-8 h-8 text-neutral-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                        No Categories Available
+                      </h3>
+                      <p className="text-neutral-600 mb-4">
+                        There are no product categories available for {sectors.find(s => s.value === selectedSector)?.label}.
+                      </p>
+                      <p className="text-sm text-neutral-500">
+                        You can add a custom product below.
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-sm text-neutral-500 mt-3">
+                    Select the category that best matches your product
+                  </p>
+                </div>
+              )}
+
+              {/* Material Selection */}
+              {selectedSector && (selectedCategory || availableCategories.length === 0) && (
+                <div>
+                  <label className="block text-lg font-bold text-neutral-900 mb-4">
+                    {availableCategories.length > 0 ? '3. Select Your Product' : '2. Select Your Product'}
+                  </label>
+                  <div className="space-y-4">
+                    {filteredMaterials.length > 0 ? (
+                      <select
+                        value={formData.material_id || ''}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setShowCustomMaterial(true);
+                            updateField('material_id', '');
+                          } else {
+                            setShowCustomMaterial(false);
+                            updateField('material_id', e.target.value);
+                          }
+                        }}
+                        className="w-full px-4 py-4 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                      >
+                        <option value="">Choose a product...</option>
+                        {filteredMaterials.map(material => (
+                          <option key={material.id} value={material.id}>
+                            {material.name} (sold per {material.unit})
+                          </option>
+                        ))}
+                        <option value="custom" className="font-semibold text-blue-700">
+                          ➕ Add Custom Product
+                        </option>
+                      </select>
+                    ) : (
+                      <div className="text-center py-8 bg-blue-50 rounded-xl border-2 border-dashed border-blue-300">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Plus className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                          No Products Available
+                        </h3>
+                        <p className="text-neutral-600 mb-4">
+                          {selectedCategory 
+                            ? `No products found in ${selectedCategory} category.`
+                            : `No products found in ${sectors.find(s => s.value === selectedSector)?.label} sector.`
+                          }
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomMaterial(true)}
+                          className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Add Custom Product
+                        </button>
+                      </div>
+                    )}
+                    {errors.material_id && (
+                      <p className="text-sm text-red-600 flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        {errors.material_id}
+                      </p>
+                    )}
+                    {selectedMaterial && !showCustomMaterial && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <p className="text-sm font-medium text-blue-900 mb-1">Selected Product:</p>
+                        <p className="text-blue-700">{selectedMaterial.name} • Category: {selectedMaterial.category}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Material Form */}
+              {showCustomMaterial && (
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <Plus className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-neutral-900">Add Custom Product</h3>
+                      <p className="text-neutral-600">Create a new product for the marketplace</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                        Product Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={customMaterialName}
+                        onChange={(e) => setCustomMaterialName(e.target.value)}
+                        placeholder="e.g., Premium Steel Rods"
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                      {errors.custom_material_name && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <X className="w-4 h-4" />
+                          {errors.custom_material_name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                        Unit of Sale *
+                      </label>
+                      <select
+                        value={customMaterialUnit}
+                        onChange={(e) => setCustomMaterialUnit(e.target.value)}
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="">Select unit...</option>
+                        <option value="kg">Kilogram (kg)</option>
+                        <option value="piece">Piece</option>
+                        <option value="meter">Meter</option>
+                        <option value="liter">Liter</option>
+                        <option value="bag">Bag</option>
+                        <option value="box">Box</option>
+                        <option value="truck">Truck</option>
+                        <option value="ton">Ton</option>
+                        <option value="custom">Custom Unit</option>
+                      </select>
+                      {errors.custom_material_unit && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <X className="w-4 h-4" />
+                          {errors.custom_material_unit}
+                        </p>
+                      )}
+                    </div>
+
+                    {customMaterialUnit === 'custom' && (
+                      <div>
+                        <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                          Custom Unit *
+                        </label>
+                        <input
+                          type="text"
+                          value={customUnitInput}
+                          onChange={(e) => setCustomUnitInput(e.target.value)}
+                          placeholder="e.g., bundle, roll, sheet"
+                          className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                        {errors.custom_unit_input && (
+                          <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                            <X className="w-4 h-4" />
+                            {errors.custom_unit_input}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={customMaterialUnit === 'custom' ? '' : 'md:col-span-2'}>
+                      <label className="block text-sm font-semibold text-neutral-900 mb-2">
+                        Product Description (Optional)
+                      </label>
+                      <textarea
+                        value={customMaterialDescription}
+                        onChange={(e) => setCustomMaterialDescription(e.target.value)}
+                        placeholder="Brief description of your product..."
+                        rows={3}
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                    <button
+                      type="button"
+                      onClick={handleCreateCustomMaterial}
+                      disabled={creatingCustomMaterial}
+                      className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {creatingCustomMaterial ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          Create Product
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomMaterial(false);
+                        setCustomMaterialName('');
+                        setCustomMaterialUnit('');
+                        setCustomUnitInput('');
+                        setCustomMaterialDescription('');
+                      }}
+                      className="flex-1 sm:flex-none bg-neutral-200 text-neutral-700 px-6 py-3 rounded-xl font-semibold hover:bg-neutral-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Price and Location */}
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <label className="block text-lg font-bold text-neutral-900 mb-4">
+                    {availableCategories.length > 0 ? '4. Set Your Price' : '3. Set Your Price'}
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      value={formData.price || ''}
+                      onChange={(e) => updateField('price', parseFloat(e.target.value))}
+                      className="w-full pl-12 pr-4 py-4 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    />
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-500">
+                      RWF per {selectedMaterial?.unit || 'unit'}
+                    </div>
+                  </div>
+                  {errors.price && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                      <X className="w-4 h-4" />
+                      {errors.price}
+                    </p>
+                  )}
+                  <p className="text-sm text-neutral-500 mt-2">
+                    Set a competitive price based on market rates
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-lg font-bold text-neutral-900 mb-4">
+                    {availableCategories.length > 0 ? '5. Choose Location' : '4. Choose Location'}
+                  </label>
+                  <select
+                    value={formData.location || ''}
+                    onChange={(e) => updateField('location', e.target.value)}
+                    className="w-full px-4 py-4 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                  >
+                    <option value="">Select your location...</option>
+                    <option value="Kigali">Kigali</option>
+                    <option value="Huye">Huye</option>
+                    <option value="Musanze">Musanze</option>
+                    <option value="Rubavu">Rubavu</option>
+                    <option value="Muhanga">Muhanga</option>
+                    <option value="Nyagatare">Nyagatare</option>
+                    <option value="Rusizi">Rusizi</option>
+                    <option value="Kayonza">Kayonza</option>
+                    <option value="Nyanza">Nyanza</option>
+                    <option value="Rwamagana">Rwamagana</option>
+                    <option value="Burera">Burera</option>
+                    <option value="Gakenke">Gakenke</option>
+                    <option value="Gasabo">Gasabo</option>
+                    <option value="Kicukiro">Kicukiro</option>
+                    <option value="Nyarugenge">Nyarugenge</option>
+                  </select>
+                  {errors.location && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                      <X className="w-4 h-4" />
+                      {errors.location}
+                    </p>
+                  )}
+                  <p className="text-sm text-neutral-500 mt-2">
+                    Buyers will see your general location for price comparison
+                  </p>
+                </div>
+              </div>
+
+              {/* Photo Upload */}
+              <div>
+                <label className="block text-lg font-bold text-neutral-900 mb-4">
+                  {availableCategories.length > 0 ? '6. Add Product Photos (Optional)' : '5. Add Product Photos (Optional)'}
+                </label>
+                <div
+                  className={`
+                    border-2 border-dashed rounded-xl p-8 text-center transition-all
+                    ${isDragging 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-neutral-300 hover:border-blue-400 hover:bg-blue-50'
+                    }
+                  `}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Plus className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-neutral-900 mb-2">
+                    Upload Product Photos
+                  </h3>
+                  <p className="text-neutral-600 mb-6">
+                    High-quality photos help buyers trust your products and increase sales
+                  </p>
+                  <div className="space-y-2 text-sm text-neutral-500 mb-6">
+                    <p>• Upload up to 5 photos</p>
+                    <p>• JPEG, PNG, WebP formats</p>
+                    <p>• Maximum 5MB per photo</p>
+                  </div>
+                  <input
+                    key={fileInputKey}
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="btn-primary cursor-pointer inline-flex items-center gap-2 px-6 py-3 text-lg"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Choose Photos
+                  </label>
+                </div>
+
+                {/* Photo Preview */}
+                {photoPreview.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-semibold text-neutral-900 mb-3">
+                      Selected Photos ({photoPreview.length}/5)
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                      {photoPreview.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-neutral-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(index)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          {index === 0 && (
+                            <div className="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                              Main
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-lg font-bold text-neutral-900 mb-4">
+                  {availableCategories.length > 0 ? '7. Product Description (Optional)' : '6. Product Description (Optional)'}
+                </label>
+                <Textarea
+                  value={formData.description || ''}
+                  onChange={(e) => updateField('description', e.target.value)}
+                  placeholder="Describe your product quality, specifications, delivery options, or any other important details buyers should know..."
+                  rows={5}
+                  className="w-full px-4 py-4 border border-neutral-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                />
+                <p className="text-sm text-neutral-500 mt-2">
+                  A detailed description helps buyers understand your product better
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="bg-neutral-50 px-8 py-6 border-t border-neutral-200">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <button 
+                  type="button"
+                  onClick={() => navigate('/suppliers/listings')}
+                  className="btn-secondary px-6 py-3 w-full sm:w-auto"
+                >
+                  Save as Draft
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleSubmit} 
+                  disabled={loading || uploadingPhotos}
+                  className="btn-primary px-8 py-3 text-lg font-semibold w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  {uploadingPhotos ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Uploading Photos...
+                    </>
+                  ) : loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Creating Listing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Publish Listing
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Help Button */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => {
+              const messageParams = new URLSearchParams({
+                userId: 'support',
+                context: 'listing-help',
+                subject: 'Help Creating Listing'
+              });
+              navigate('/messages?' + messageParams.toString());
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-colors flex items-center gap-2"
+            title="Need help creating your listing?"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="hidden md:inline text-sm font-medium">Need Help?</span>
+          </button>
         </div>
       </div>
 
-      <Card className="p-6">
-        <div className="space-y-6">
-          {/* Sector Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Sector / Category *
-            </label>
-            <select
-              value={selectedSector}
-              onChange={(e) => {
-                setSelectedSector(e.target.value);
-                // Reset material selection when sector changes
-                updateField('material_id', '');
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select a sector first...</option>
-              {sectors.map(sector => (
-                <option key={sector.value} value={sector.value}>
-                  {sector.label}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Choose the sector that best matches your product
-            </p>
-          </div>
-
-          {/* Material Selection - Only show after sector is selected */}
-          {selectedSector && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Material / Product *
-              </label>
-              <select
-                value={formData.material_id || ''}
-                onChange={(e) => {
-                  if (e.target.value === 'custom') {
-                    setShowCustomMaterial(true);
-                    updateField('material_id', '');
-                  } else {
-                    setShowCustomMaterial(false);
-                    updateField('material_id', e.target.value);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">Select a material...</option>
-                {filteredMaterials.map(material => (
-                  <option key={material.id} value={material.id}>
-                    {material.name} ({material.unit})
-                  </option>
-                ))}
-                <option value="custom" className="font-semibold text-primary-700">
-                  Add Custom Material
-                </option>
-              </select>
-              {errors.material_id && (
-                <p className="mt-1 text-xs text-red-600">{errors.material_id}</p>
-              )}
-              {selectedMaterial && !showCustomMaterial && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Category: {selectedMaterial.category}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Custom Material Input - Show when user selects "Add Custom Material" */}
-          {showCustomMaterial && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Package className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                    Add Your Custom Material
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    Can't find your material? Add it here and we'll review it for approval.
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Material Name *
-                </label>
-                <Input
-                  placeholder="e.g., Premium Quality Rice"
-                  value={customMaterialName}
-                  onChange={(e) => setCustomMaterialName(e.target.value)}
-                  error={errors.custom_material_name}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Unit of Measurement *
-                </label>
-                <select
-                  value={customMaterialUnit}
-                  onChange={(e) => {
-                    setCustomMaterialUnit(e.target.value);
-                    if (e.target.value !== 'custom') {
-                      setCustomUnitInput('');
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                >
-                  <option value="">Select unit...</option>
-                  <option value="kg">Kilogram (kg)</option>
-                  <option value="bag">Bag</option>
-                  <option value="piece">Piece</option>
-                  <option value="liter">Liter</option>
-                  <option value="meter">Meter</option>
-                  <option value="box">Box</option>
-                  <option value="carton">Carton</option>
-                  <option value="dozen">Dozen</option>
-                  <option value="ton">Ton</option>
-                  <option value="unit">Unit</option>
-                  <option value="sqm">Square Meter (sqm)</option>
-                  <option value="bundle">Bundle</option>
-                  <option value="roll">Roll</option>
-                  <option value="pack">Pack</option>
-                  <option value="sack">Sack</option>
-                  <option value="bottle">Bottle</option>
-                  <option value="can">Can</option>
-                  <option value="jar">Jar</option>
-                  <option value="gallon">Gallon</option>
-                  <option value="custom" className="font-semibold text-primary-700">Custom Unit</option>
-                </select>
-                {errors.custom_material_unit && (
-                  <p className="mt-1 text-xs text-red-600">{errors.custom_material_unit}</p>
-                )}
-              </div>
-
-              {/* Custom Unit Input - Show when "Custom Unit" is selected */}
-              {customMaterialUnit === 'custom' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter Custom Unit *
-                  </label>
-                  <Input
-                    placeholder="e.g., tray, crate, pallet, etc."
-                    value={customUnitInput}
-                    onChange={(e) => setCustomUnitInput(e.target.value)}
-                    error={errors.custom_unit_input}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter the unit of measurement for your material
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (optional)
-                </label>
-                <Textarea
-                  placeholder="Describe your material to help us categorize it correctly..."
-                  value={customMaterialDescription}
-                  onChange={(e) => setCustomMaterialDescription(e.target.value)}
-                  rows={2}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setShowCustomMaterial(false);
-                    setCustomMaterialName('');
-                    setCustomMaterialUnit('');
-                    setCustomUnitInput('');
-                    setCustomMaterialDescription('');
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleCreateCustomMaterial}
-                  loading={creatingCustomMaterial}
-                >
-                  Add Material
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Price per {selectedMaterial?.unit || 'unit'} *
-            </label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={formData.price || ''}
-              onChange={(e) => updateField('price', parseFloat(e.target.value))}
-              icon={<DollarSign className="w-4 h-4" />}
-              error={errors.price}
-            />
-          </div>
-
-          {/* Min Quantity */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Minimum Quantity (optional)
-            </label>
-            <Input
-              type="number"
-              placeholder="e.g., 10"
-              value={formData.min_quantity || ''}
-              onChange={(e) => updateField('min_quantity', parseFloat(e.target.value))}
-              icon={<Package className="w-4 h-4" />}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty if there's no minimum order quantity
-            </p>
-          </div>
-
-          {/* Location */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location *
-            </label>
-            <select
-              value={formData.location || ''}
-              onChange={(e) => updateField('location', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select location...</option>
-              <option value="Kigali">Kigali</option>
-              <option value="Huye">Huye</option>
-              <option value="Musanze">Musanze</option>
-              <option value="Rubavu">Rubavu</option>
-              <option value="Muhanga">Muhanga</option>
-            </select>
-            {errors.location && (
-              <p className="mt-1 text-xs text-red-600">{errors.location}</p>
-            )}
-          </div>
-
-          {/* City & Area */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                District (optional)
-              </label>
-              <Input
-                placeholder="e.g., Gasabo"
-                value={formData.city || ''}
-                onChange={(e) => updateField('city', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sector (optional)
-              </label>
-              <Input
-                placeholder="e.g., Kimironko"
-                value={formData.area || ''}
-                onChange={(e) => updateField('area', e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Delivery Info */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Delivery Information
-            </label>
-            <Textarea
-              placeholder="e.g., Free delivery within 10km, delivery available nationwide"
-              value={formData.delivery_info || ''}
-              onChange={(e) => updateField('delivery_info', e.target.value)}
-              rows={3}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              <Truck className="w-3 h-3 inline mr-1" />
-              Describe your delivery options and coverage area
-            </p>
-          </div>
-
-          {/* Photos */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Photos (Optional)
-            </label>
-            <div className="text-sm text-gray-600 mb-2 bg-amber-50 border border-amber-200 rounded p-2 flex items-start gap-2">
-              <Camera className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-900">Photos are optional but recommended!</p>
-                <p className="text-xs text-amber-700 mt-1">Listings with photos get 3x more inquiries. You can add photos later if needed.</p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mb-3">
-              Supported formats: JPG, PNG, WEBP • Max 5MB per photo • Up to 5 photos
-            </p>
-            
-            {/* Photo Preview */}
-            {photoPreview.length > 0 && (
-              <div className="mb-3">
-                <div className="grid grid-cols-5 gap-2 mb-2">
-                  {photoPreview.map((preview, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-20 object-cover rounded border border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-green-600">
-                  ✓ {photoFiles.length} photo(s) selected {photoFiles.length < 5 && `• You can add ${5 - photoFiles.length} more`}
-                </p>
-              </div>
-            )}
-
-            {/* Drag and Drop Zone */}
-            <div
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              className={`
-                relative border-2 border-dashed rounded-lg p-6 text-center transition-colors
-                ${isDragging 
-                  ? 'border-primary-500 bg-primary-50' 
-                  : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                }
-                ${photoFiles.length >= 5 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-              `}
-            >
-              <input
-                key={fileInputKey}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,image/jpe,image/pjpeg,.jpg,.jpeg,.png,.webp"
-                multiple
-                onChange={handlePhotoSelect}
-                disabled={photoFiles.length >= 5}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-              />
-              
-              <div className="pointer-events-none">
-                <Camera className={`w-10 h-10 mx-auto mb-2 ${isDragging ? 'text-primary-600' : 'text-gray-400'}`} />
-                {photoFiles.length >= 5 ? (
-                  <p className="text-sm text-gray-500 font-medium">Maximum 5 photos reached</p>
-                ) : (
-                  <>
-                    <p className="text-sm text-gray-700 font-medium mb-1">
-                      {isDragging ? 'Drop photos here' : 'Drag & drop photos here'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      or click to browse • Select multiple files at once
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Add More Photos Button - Only show if photos exist and under limit */}
-            {photoFiles.length > 0 && photoFiles.length < 5 && (
-              <div className="mt-3">
-                <label className="inline-block">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/jpe,image/pjpeg,.jpg,.jpeg,.png,.webp"
-                    multiple
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                  />
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add More Photos ({5 - photoFiles.length} remaining)
-                  </span>
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-8 flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => navigate('/suppliers/listings')}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} loading={loading || uploadingPhotos}>
-            {uploadingPhotos ? 'Uploading Photos...' : 'Create Listing'}
-          </Button>
-        </div>
-      </Card>
+      <Footer />
     </div>
   );
 }

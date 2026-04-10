@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Setup Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Database Setup</h1>
+    <div id="status">Setting up database...</div>
+    <div id="results"></div>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function setupDatabase() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                statusDiv.innerHTML = 'Creating wishlist_items table...';
+                
+                // Create wishlist_items table
+                const { data: wishlistResult, error: wishlistError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE IF NOT EXISTS public.wishlist_items (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            listing_id UUID NOT NULL REFERENCES public.supplier_listings(id) ON DELETE CASCADE,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            UNIQUE(user_id, listing_id)
+                        );
+                        
+                        ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
+                        
+                        DROP POLICY IF EXISTS "wishlist_policy" ON public.wishlist_items;
+                        CREATE POLICY "wishlist_policy" ON public.wishlist_items FOR ALL USING (auth.uid() = user_id);
+                    `
+                });
+
+                if (wishlistError) {
+                    console.error('Wishlist table error:', wishlistError);
+                    resultsDiv.innerHTML += '<p style="color: red;">Wishlist table error: ' + wishlistError.message + '</p>';
+                } else {
+                    resultsDiv.innerHTML += '<p style="color: green;">✓ Wishlist table created successfully</p>';
+                }
+
+                statusDiv.innerHTML = 'Creating cart_items table...';
+                
+                // Create cart_items table
+                const { data: cartResult, error: cartError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE IF NOT EXISTS public.cart_items (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            listing_id UUID NOT NULL REFERENCES public.supplier_listings(id) ON DELETE CASCADE,
+                            quantity DECIMAL(10, 2) NOT NULL DEFAULT 1,
+                            notes TEXT,
+                            created_at TIMESTAMPTZ DEFAULT NOW(),
+                            updated_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        
+                        ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+                        
+                        DROP POLICY IF EXISTS "cart_policy" ON public.cart_items;
+                        CREATE POLICY "cart_policy" ON public.cart_items FOR ALL USING (auth.uid() = user_id);
+                    `
+                });
+
+                if (cartError) {
+                    console.error('Cart table error:', cartError);
+                    resultsDiv.innerHTML += '<p style="color: red;">Cart table error: ' + cartError.message + '</p>';
+                } else {
+                    resultsDiv.innerHTML += '<p style="color: green;">✓ Cart table created successfully</p>';
+                }
+
+                statusDiv.innerHTML = 'Creating notifications table...';
+                
+                // Create notifications table
+                const { data: notifResult, error: notifError } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        CREATE TABLE IF NOT EXISTS public.notifications (
+                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                            user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+                            type VARCHAR(50) NOT NULL,
+                            title VARCHAR(200) NOT NULL,
+                            message TEXT NOT NULL,
+                            data JSONB DEFAULT '{}',
+                            read BOOLEAN DEFAULT FALSE,
+                            read_at TIMESTAMPTZ,
+                            created_at TIMESTAMPTZ DEFAULT NOW()
+                        );
+                        
+                        ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+                        
+                        DROP POLICY IF EXISTS "notifications_policy" ON public.notifications;
+                        CREATE POLICY "notifications_policy" ON public.notifications FOR ALL USING (auth.uid() = user_id);
+                    `
+                });
+
+                if (notifError) {
+                    console.error('Notifications table error:', notifError);
+                    resultsDiv.innerHTML += '<p style="color: red;">Notifications table error: ' + notifError.message + '</p>';
+                } else {
+                    resultsDiv.innerHTML += '<p style="color: green;">✓ Notifications table created successfully</p>';
+                }
+
+                statusDiv.innerHTML = 'Verifying tables...';
+                
+                // Verify tables exist
+                const { data: tables, error: verifyError } = await supabase
+                    .from('information_schema.tables')
+                    .select('table_name')
+                    .eq('table_schema', 'public')
+                    .in('table_name', ['wishlist_items', 'cart_items', 'notifications']);
+
+                if (verifyError) {
+                    console.error('Verification error:', verifyError);
+                    resultsDiv.innerHTML += '<p style="color: red;">Verification error: ' + verifyError.message + '</p>';
+                } else {
+                    resultsDiv.innerHTML += '<p style="color: blue;">Found tables: ' + tables.map(t => t.table_name).join(', ') + '</p>';
+                }
+
+                statusDiv.innerHTML = 'Database setup completed!';
+                
+            } catch (error) {
+                console.error('Setup error:', error);
+                statusDiv.innerHTML = 'Setup failed!';
+                resultsDiv.innerHTML += '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        // Run setup when page loads
+        setupDatabase();
+    </script>
+</body>
+</html>

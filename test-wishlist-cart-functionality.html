@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Wishlist & Cart Functionality</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Wishlist & Cart Functionality</h1>
+    <div id="output"></div>
+    <button onclick="testWishlistFunctionality()">Test Wishlist</button>
+    <button onclick="testCartFunctionality()">Test Cart</button>
+    <button onclick="testNotifications()">Test Notifications</button>
+
+    <script>
+        const supabaseUrl = 'https://kiwtbssgteuszyckttyq.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpd3Ric3NndGV1c3p5Y2t0dHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTUwMjcsImV4cCI6MjA5MDczMTAyN30.pmcCxFvVAJvkzNGTUUudz7nq72tCclV9cJZ01keForY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testWishlistFunctionality() {
+            try {
+                log('🧪 Testing Wishlist Functionality...');
+
+                // Test user ID (use a known user ID from your database)
+                const testUserId = 'e874ddb0-cd47-41c8-aaff-c2cd9aaed7a1';
+                
+                // Get a test listing ID
+                const { data: listings } = await supabase
+                    .from('supplier_listings')
+                    .select('id')
+                    .limit(1);
+                
+                if (!listings || listings.length === 0) {
+                    log('❌ No listings found for testing');
+                    return;
+                }
+                
+                const testListingId = listings[0].id;
+                log(`Using test listing ID: ${testListingId}`);
+
+                // Test adding to wishlist
+                log('Testing add to wishlist...');
+                const { data: addResult, error: addError } = await supabase
+                    .from('wishlist_items')
+                    .insert({
+                        user_id: testUserId,
+                        listing_id: testListingId
+                    })
+                    .select()
+                    .single();
+
+                if (addError && !addError.message.includes('duplicate')) {
+                    log('❌ Add to wishlist failed: ' + addError.message);
+                } else {
+                    log('✅ Add to wishlist successful');
+                }
+
+                // Test fetching wishlist
+                log('Testing fetch wishlist...');
+                const { data: wishlistItems, error: fetchError } = await supabase
+                    .from('wishlist_items')
+                    .select(`
+                        *,
+                        listing:supplier_listings(
+                            *,
+                            material:materials(*)
+                        )
+                    `)
+                    .eq('user_id', testUserId);
+
+                if (fetchError) {
+                    log('❌ Fetch wishlist failed: ' + fetchError.message);
+                } else {
+                    log(`✅ Fetch wishlist successful (${wishlistItems.length} items)`);
+                }
+
+                // Test removing from wishlist
+                log('Testing remove from wishlist...');
+                const { error: removeError } = await supabase
+                    .from('wishlist_items')
+                    .delete()
+                    .eq('user_id', testUserId)
+                    .eq('listing_id', testListingId);
+
+                if (removeError) {
+                    log('❌ Remove from wishlist failed: ' + removeError.message);
+                } else {
+                    log('✅ Remove from wishlist successful');
+                }
+
+                log('🎉 Wishlist functionality test completed!');
+
+            } catch (error) {
+                log('❌ Wishlist test failed: ' + error.message);
+            }
+        }
+
+        async function testCartFunctionality() {
+            try {
+                log('🧪 Testing Cart Functionality...');
+
+                // Test user ID
+                const testUserId = 'e874ddb0-cd47-41c8-aaff-c2cd9aaed7a1';
+                
+                // Get a test listing ID
+                const { data: listings } = await supabase
+                    .from('supplier_listings')
+                    .select('id')
+                    .limit(1);
+                
+                if (!listings || listings.length === 0) {
+                    log('❌ No listings found for testing');
+                    return;
+                }
+                
+                const testListingId = listings[0].id;
+                log(`Using test listing ID: ${testListingId}`);
+
+                // Test adding to cart
+                log('Testing add to cart...');
+                const { data: addResult, error: addError } = await supabase
+                    .from('cart_items')
+                    .insert({
+                        user_id: testUserId,
+                        listing_id: testListingId,
+                        quantity: 5,
+                        notes: 'Test cart item'
+                    })
+                    .select()
+                    .single();
+
+                if (addError && !addError.message.includes('duplicate')) {
+                    log('❌ Add to cart failed: ' + addError.message);
+                } else {
+                    log('✅ Add to cart successful');
+                }
+
+                // Test fetching cart
+                log('Testing fetch cart...');
+                const { data: cartItems, error: fetchError } = await supabase
+                    .from('cart_items')
+                    .select(`
+                        *,
+                        listing:supplier_listings(
+                            *,
+                            material:materials(*)
+                        )
+                    `)
+                    .eq('user_id', testUserId);
+
+                if (fetchError) {
+                    log('❌ Fetch cart failed: ' + fetchError.message);
+                } else {
+                    log(`✅ Fetch cart successful (${cartItems.length} items)`);
+                }
+
+                // Test updating cart item
+                if (cartItems && cartItems.length > 0) {
+                    log('Testing update cart item...');
+                    const { error: updateError } = await supabase
+                        .from('cart_items')
+                        .update({
+                            quantity: 10,
+                            notes: 'Updated test cart item'
+                        })
+                        .eq('id', cartItems[0].id);
+
+                    if (updateError) {
+                        log('❌ Update cart item failed: ' + updateError.message);
+                    } else {
+                        log('✅ Update cart item successful');
+                    }
+                }
+
+                // Test removing from cart
+                log('Testing remove from cart...');
+                const { error: removeError } = await supabase
+                    .from('cart_items')
+                    .delete()
+                    .eq('user_id', testUserId)
+                    .eq('listing_id', testListingId);
+
+                if (removeError) {
+                    log('❌ Remove from cart failed: ' + removeError.message);
+                } else {
+                    log('✅ Remove from cart successful');
+                }
+
+                log('🎉 Cart functionality test completed!');
+
+            } catch (error) {
+                log('❌ Cart test failed: ' + error.message);
+            }
+        }
+
+        async function testNotifications() {
+            try {
+                log('🧪 Testing Notifications Functionality...');
+
+                // Test user ID
+                const testUserId = 'e874ddb0-cd47-41c8-aaff-c2cd9aaed7a1';
+
+                // Test creating notification
+                log('Testing create notification...');
+                const { data: notification, error: createError } = await supabase
+                    .from('notifications')
+                    .insert({
+                        user_id: testUserId,
+                        type: 'system',
+                        title: 'Test Notification',
+                        message: 'This is a test notification to verify functionality.',
+                        data: { test: true }
+                    })
+                    .select()
+                    .single();
+
+                if (createError) {
+                    log('❌ Create notification failed: ' + createError.message);
+                } else {
+                    log('✅ Create notification successful');
+                }
+
+                // Test fetching notifications
+                log('Testing fetch notifications...');
+                const { data: notifications, error: fetchError } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', testUserId)
+                    .order('created_at', { ascending: false });
+
+                if (fetchError) {
+                    log('❌ Fetch notifications failed: ' + fetchError.message);
+                } else {
+                    log(`✅ Fetch notifications successful (${notifications.length} notifications)`);
+                }
+
+                // Test marking as read
+                if (notification) {
+                    log('Testing mark as read...');
+                    const { error: readError } = await supabase
+                        .from('notifications')
+                        .update({ read: true })
+                        .eq('id', notification.id);
+
+                    if (readError) {
+                        log('❌ Mark as read failed: ' + readError.message);
+                    } else {
+                        log('✅ Mark as read successful');
+                    }
+
+                    // Test deleting notification
+                    log('Testing delete notification...');
+                    const { error: deleteError } = await supabase
+                        .from('notifications')
+                        .delete()
+                        .eq('id', notification.id);
+
+                    if (deleteError) {
+                        log('❌ Delete notification failed: ' + deleteError.message);
+                    } else {
+                        log('✅ Delete notification successful');
+                    }
+                }
+
+                log('🎉 Notifications functionality test completed!');
+
+            } catch (error) {
+                log('❌ Notifications test failed: ' + error.message);
+            }
+        }
+
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            log('Page loaded. Click buttons to test functionality.');
+        });
+    </script>
+</body>
+</html>
+</script>
+</body>
+</html>
