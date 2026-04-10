@@ -232,7 +232,7 @@ export function Landing() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
                   <img 
-                    src="/images/aa.JPG"
+                    src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/aa.JPG"
                     alt="African woman supplier in her business"
                     className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white/20"
                   />
@@ -243,7 +243,7 @@ export function Landing() {
                 </div>
                 <div className="relative">
                   <img 
-                    src="/images/bb.webp"
+                    src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/bb.webp"
                     alt="African businessman buyer in marketplace"
                     className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white/20"
                   />
@@ -767,7 +767,7 @@ export function Landing() {
             
             <div className="relative">
               <img 
-                src="/images/cc.webp"
+                src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cc.webp"
                 alt="African business professionals in meeting discussing deals"
                 className="w-full h-48 object-cover rounded-2xl shadow-lg"
               />
@@ -781,7 +781,7 @@ export function Landing() {
             
             <div className="relative">
               <img 
-                src="/images/dd.webp"
+                src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/dd.webp"
                 alt="African businesswoman celebrating successful transaction"
                 className="w-full h-48 object-cover rounded-2xl shadow-lg"
               />

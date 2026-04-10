@@ -112,7 +112,7 @@ export function Header() {
             {/* Logo */}
             <Link to="/home" className="flex items-center">
               <img 
-                src="/images/cerka-logo.jpeg" 
+                src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cerka-logo.jpeg" 
                 alt="Cerka" 
                 className="h-8 w-auto mr-2"
               />

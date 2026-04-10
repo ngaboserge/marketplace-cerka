@@ -111,7 +111,7 @@ export function Footer() {
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
                 <img 
-                  src="/images/cerka-logo.jpeg" 
+                  src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cerka-logo.jpeg" 
                   alt="Cerka" 
                   className="w-10 h-10 rounded-lg shadow-lg"
                 />

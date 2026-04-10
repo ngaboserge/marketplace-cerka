@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .image-test {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .image-test img {
+            max-width: 200px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .success { background: #d1fae5; color: #065f46; }
+        .error { background: #fee2e2; color: #991b1b; }
+        .url { 
+            font-family: monospace; 
+            font-size: 12px; 
+            word-break: break-all;
+            background: #f3f4f6;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ Supabase Image Test</h1>
+    <p>Testing if all Cerka images are accessible from Supabase Storage:</p>
+
+    <div class="image-test">
+        <h3>Cerka Logo</h3>
+        <div class="url">https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cerka-logo.jpeg</div>
+        <img 
+            src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cerka-logo.jpeg" 
+            alt="Cerka Logo"
+            onload="showStatus(this, 'success')"
+            onerror="showStatus(this, 'error')"
+        />
+        <div class="status" id="status-logo"></div>
+    </div>
+
+    <div class="image-test">
+        <h3>Supplier Image (aa.JPG)</h3>
+        <div class="url">https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/aa.JPG</div>
+        <img 
+            src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/aa.JPG" 
+            alt="Supplier"
+            onload="showStatus(this, 'success')"
+            onerror="showStatus(this, 'error')"
+        />
+        <div class="status" id="status-aa"></div>
+    </div>
+
+    <div class="image-test">
+        <h3>Buyer Image (bb.webp)</h3>
+        <div class="url">https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/bb.webp</div>
+        <img 
+            src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/bb.webp" 
+            alt="Buyer"
+            onload="showStatus(this, 'success')"
+            onerror="showStatus(this, 'error')"
+        />
+        <div class="status" id="status-bb"></div>
+    </div>
+
+    <div class="image-test">
+        <h3>Connect & Compare Image (cc.webp)</h3>
+        <div class="url">https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cc.webp</div>
+        <img 
+            src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/cc.webp" 
+            alt="Connect & Compare"
+            onload="showStatus(this, 'success')"
+            onerror="showStatus(this, 'error')"
+        />
+        <div class="status" id="status-cc"></div>
+    </div>
+
+    <div class="image-test">
+        <h3>Trade & Grow Image (dd.webp)</h3>
+        <div class="url">https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/dd.webp</div>
+        <img 
+            src="https://kiwtbssgteuszyckttyq.supabase.co/storage/v1/object/public/images/dd.webp" 
+            alt="Trade & Grow"
+            onload="showStatus(this, 'success')"
+            onerror="showStatus(this, 'error')"
+        />
+        <div class="status" id="status-dd"></div>
+    </div>
+
+    <script>
+        function showStatus(img, status) {
+            const statusDiv = img.nextElementSibling;
+            if (status === 'success') {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Image loaded successfully';
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Failed to load image - needs to be uploaded to Supabase';
+            }
+        }
+    </script>
+</body>
+</html>
