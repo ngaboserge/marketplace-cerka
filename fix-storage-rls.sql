@@ -8,12 +8,13 @@ VALUES (
   ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 ) ON CONFLICT (id) DO NOTHING;
 
--- Drop existing policies if they exist
+-- Drop existing policies if they exist (ignore errors if they don't exist)
 DROP POLICY IF EXISTS "Allow public uploads to images bucket" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public access to images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public updates to images" ON storage.objects;
 DROP POLICY IF EXISTS "Allow public deletes from images" ON storage.objects;
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Allow public bucket access" ON storage.buckets;
 
 -- Create comprehensive RLS policies for the images bucket
 CREATE POLICY "Allow public uploads to images bucket" ON storage.objects
@@ -31,8 +32,8 @@ FOR DELETE USING (bucket_id = 'images');
 -- Enable RLS on storage.objects (should already be enabled)
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
--- Also ensure the buckets table has proper policies
-CREATE POLICY IF NOT EXISTS "Allow public bucket access" ON storage.buckets
+-- Create policy for buckets table (without IF NOT EXISTS)
+CREATE POLICY "Allow public bucket access" ON storage.buckets
 FOR SELECT USING (true);
 
 -- Verify the setup
