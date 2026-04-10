@@ -10,7 +10,8 @@
     "build:check": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "upload-images": "node simple-upload-server.js"
+    "upload-images": "node simple-upload-server.js",
+    "test-storage": "node test-and-setup-storage.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.90.1",
