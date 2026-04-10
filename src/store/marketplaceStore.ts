@@ -157,14 +157,13 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   fetchListingsBySector: async (sector) => {
     set({ loading: true, error: null });
     try {
-      // Fetch all active listings with material data
+      // Fetch all listings with material data (don't filter by status if it's causing issues)
       const { data, error } = await supabase
         .from('supplier_listings')
         .select(`
           *,
           material:materials(id, name, category, unit, icon, sector)
         `)
-        .eq('status', 'active')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -215,9 +214,8 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
           *,
           material:materials(id, name, category, unit, icon, sector)
         `)
-        .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
 

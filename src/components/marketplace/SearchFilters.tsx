@@ -79,7 +79,21 @@ export function SearchFilters({
     }
 
     setActiveFilters(newFilters);
-    onFiltersChange(newFilters);
+    
+    // Convert to the format expected by the parent component
+    const parentFilters = {
+      material_id: '',
+      location: newFilters.locations.length > 0 ? newFilters.locations[0] : '',
+      min_price: undefined,
+      max_price: undefined,
+      min_rating: newFilters.minRating > 0 ? newFilters.minRating : undefined,
+      verified_only: newFilters.verified,
+      categories: newFilters.categories,
+      in_stock: newFilters.inStock,
+      featured: newFilters.featured
+    };
+    
+    onFiltersChange(parentFilters);
   };
 
   const clearAllFilters = () => {

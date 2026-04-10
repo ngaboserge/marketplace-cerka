@@ -130,14 +130,14 @@ export function ProductCard({
       return;
     }
 
-    if (user.id === supplier.id) {
+    if (user.id === supplier?.id) {
       alert('You cannot message yourself. This is your own listing.');
       return;
     }
 
     const messageParams = new URLSearchParams({
-      userId: supplier.id || '',
-      supplierName: supplier.name,
+      userId: supplier?.id || '',
+      supplierName: supplier?.name || 'Supplier',
       context: 'product',
       productName: title,
       productId: id

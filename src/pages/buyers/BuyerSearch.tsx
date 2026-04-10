@@ -37,20 +37,22 @@ export default function BuyerSearch() {
 
   // Calculate real category counts from listings
   const getCategoryCount = (sector: string) => {
-    return listings.filter(listing => listing.material?.sector === sector).length;
+    return listings.filter(listing => 
+      listing.material?.sector === sector || 
+      listing.material?.sector === (sector === 'agriculture' ? 'food' : sector)
+    ).length;
   };
 
   const getLocationCount = (location: string) => {
     return listings.filter(listing => 
       listing.supplier?.location?.toLowerCase().includes(location.toLowerCase()) ||
-      listing.title?.toLowerCase().includes(location.toLowerCase())
+      listing.location?.toLowerCase().includes(location.toLowerCase())
     ).length;
   };
 
   const categories = [
     { id: 'construction', label: 'Construction Materials', count: getCategoryCount('construction') },
-    { id: 'agriculture', label: 'Agriculture', count: getCategoryCount('agriculture') },
-    { id: 'food', label: 'Food & Beverage', count: getCategoryCount('food') },
+    { id: 'food', label: 'Food & Agriculture', count: getCategoryCount('food') },
     { id: 'electronics', label: 'Electronics', count: getCategoryCount('electronics') },
     { id: 'textiles', label: 'Textiles', count: getCategoryCount('textiles') },
   ];
@@ -93,14 +95,28 @@ export default function BuyerSearch() {
   // Filter listings based on current filters and search query
   const filteredListings = listings.filter(listing => {
     // Featured filter - if showFeaturedOnly is true, only show listings with high view count
-    if (showFeaturedOnly && listing.view_count <= 10) {
-      console.log(`❌ ${listing.title} filtered out: view_count ${listing.view_count} <= 10`);
+    if (showFeaturedOnly && (listing.view_count || 0) <= 10) {
       return false;
     }
     
-    // Text search
-    if (searchQuery && !listing.title.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
+    // Category filter
+    if (filters.categories && filters.categories.length > 0) {
+      const listingSector = listing.material?.sector;
+      if (!filters.categories.includes(listingSector)) {
+        return false;
+      }
+    }
+    
+    // Text search - search in title, description, and material name
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      const titleMatch = listing.title?.toLowerCase().includes(searchLower);
+      const descMatch = listing.description?.toLowerCase().includes(searchLower);
+      const materialMatch = listing.material?.name?.toLowerCase().includes(searchLower);
+      
+      if (!titleMatch && !descMatch && !materialMatch) {
+        return false;
+      }
     }
     
     // Material filter
@@ -116,13 +132,30 @@ export default function BuyerSearch() {
       return false;
     }
     
-    // Location filter (search in title for now)
-    if (filters.location && !listing.title.toLowerCase().includes(filters.location.toLowerCase())) {
+    // Location filter - check both listing location and supplier location
+    if (filters.location) {
+      const locationLower = filters.location.toLowerCase();
+      const listingLocationMatch = listing.location?.toLowerCase().includes(locationLower);
+      const supplierLocationMatch = listing.supplier?.location?.toLowerCase().includes(locationLower);
+      
+      if (!listingLocationMatch && !supplierLocationMatch) {
+        return false;
+      }
+    }
+    
+    // Verified suppliers filter
+    if (filters.verified_only && !listing.supplier?.is_verified_supplier) {
       return false;
     }
     
-    if (showFeaturedOnly) {
-      console.log(`✅ ${listing.title} passes featured filter: view_count ${listing.view_count} > 10`);
+    // In stock filter
+    if (filters.in_stock && listing.availability_status !== 'available') {
+      return false;
+    }
+    
+    // Featured filter
+    if (filters.featured && (listing.view_count || 0) <= 10) {
+      return false;
     }
     
     return true;
@@ -140,7 +173,6 @@ export default function BuyerSearch() {
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-    // Apply filters logic here
   };
 
   const handlePriceRangeChange = (range: { min: number; max: number }) => {

@@ -1,27 +1,19 @@
--- Check supplier_listings table structure
-SELECT column_name, data_type, is_nullable, column_default
+-- Check the actual structure of supplier_listings table
+SELECT 
+    column_name, 
+    data_type, 
+    is_nullable, 
+    column_default,
+    udt_name
 FROM information_schema.columns 
 WHERE table_name = 'supplier_listings' 
 ORDER BY ordinal_position;
 
--- Check if title column exists
-SELECT EXISTS (
-    SELECT 1 
-    FROM information_schema.columns 
-    WHERE table_name = 'supplier_listings' 
-    AND column_name = 'title'
-) as title_column_exists;
-
--- Check sample listings to see what data we have
+-- Check if there are any enum types
 SELECT 
-    id,
-    title,
-    material_id,
-    supplier_id,
-    price,
-    location,
-    status,
-    created_at
-FROM supplier_listings 
-ORDER BY created_at DESC 
-LIMIT 5;
+    t.typname AS enum_name,
+    e.enumlabel AS enum_value
+FROM pg_type t 
+JOIN pg_enum e ON t.oid = e.enumtypid  
+WHERE t.typname LIKE '%status%'
+ORDER BY t.typname, e.enumsortorder;
