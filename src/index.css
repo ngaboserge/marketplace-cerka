@@ -480,6 +480,49 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Mobile-first improvements */
+  @media (max-width: 640px) {
+    .search-bar {
+      @apply mx-0 max-w-full;
+    }
+
+    .product-grid {
+      @apply grid-cols-2 gap-3;
+    }
+
+    .product-image {
+      @apply h-36;
+    }
+
+    .product-info {
+      @apply p-3;
+    }
+
+    .product-price {
+      @apply text-base;
+    }
+
+    .product-title {
+      @apply text-xs;
+    }
+
+    .filters-sidebar {
+      @apply w-full border-r-0 border-b border-neutral-200;
+    }
+
+    .container-marketplace {
+      @apply px-3;
+    }
+
+    .btn-primary, .btn-secondary {
+      @apply text-xs px-3 py-2;
+    }
+
+    .section-padding {
+      @apply py-5;
+    }
+  }
 }
 
 /* Animations */
