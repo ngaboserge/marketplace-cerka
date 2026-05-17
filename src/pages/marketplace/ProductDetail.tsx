@@ -445,7 +445,12 @@ export function ProductDetail() {
               
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h4 className="text-lg font-semibold text-neutral-900">{product.supplier.name}</h4>
+                  <button
+                    onClick={() => navigate(`/suppliers/profile/${product.supplier.id}`)}
+                    className="text-lg font-semibold text-neutral-900 hover:text-orange-600 transition-colors text-left"
+                  >
+                    {product.supplier.name}
+                  </button>
                   {product.supplier.verified && (
                     <div className="flex items-center gap-1 text-blue-600">
                       <Shield className="w-4 h-4" />

@@ -268,6 +268,12 @@ export function Header() {
                           >
                             Price Intelligence
                           </Link>
+                          <Link
+                            to="/materials/regional"
+                            className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                          >
+                            Regional Prices
+                          </Link>
                           <hr className="my-2" />
                           <button
                             onClick={logout}
@@ -320,6 +326,9 @@ export function Header() {
             ))}
             <Link to="/marketplace/categories" className="nav-category-item text-orange-300 hover:text-white whitespace-nowrap">
               More Categories
+            </Link>
+            <Link to="/materials/regional" className="nav-category-item text-orange-300 hover:text-white whitespace-nowrap">
+              Regional Prices
             </Link>
           </div>
         </div>

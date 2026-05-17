@@ -319,6 +319,13 @@ export default function PriceTrends() {
                 {showCharts ? t('materials.trends.hideCharts') : t('materials.trends.showCharts')}
               </button>
               <button
+                onClick={() => navigate('/materials/regional')}
+                className="btn-primary flex items-center gap-2"
+              >
+                <MapPin className="w-4 h-4" />
+                Regional Comparison
+              </button>
+              <button
                 onClick={exportToCSV}
                 className="btn-secondary flex items-center gap-2"
               >

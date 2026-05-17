@@ -55,8 +55,8 @@ import SectorBrowse from '@/pages/marketplace/SectorBrowse';
 import { MarketplaceProfile } from '@/pages/marketplace/MarketplaceProfile';
 import { ProductDetail } from '@/pages/marketplace/ProductDetail';
 
-// Intelligence pages
-import SignalsDashboard from '@/pages/intelligence/SignalsDashboard';
+import SupplierProfile from '@/pages/suppliers/SupplierProfile';
+import RegionalPriceIndex from '@/pages/materials/RegionalPriceIndex';
 import InsightsFeed from '@/pages/intelligence/InsightsFeed';
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'buyer' | 'supplier' | 'contributor' | 'admin' }) {
@@ -179,6 +179,12 @@ export default function App() {
           {/* Intelligence routes */}
           <Route path="/intelligence/signals" element={<ProtectedRoute><SignalsDashboard /></ProtectedRoute>} />
           <Route path="/intelligence/insights" element={<ProtectedRoute><InsightsFeed /></ProtectedRoute>} />
+
+          {/* Supplier public profile */}
+          <Route path="/suppliers/profile/:id" element={<ProtectedRoute><SupplierProfile /></ProtectedRoute>} />
+
+          {/* Regional price comparison */}
+          <Route path="/materials/regional" element={<ProtectedRoute><RegionalPriceIndex /></ProtectedRoute>} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

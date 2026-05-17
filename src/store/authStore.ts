@@ -90,15 +90,54 @@ export const useAuthStore = create<AuthState>()(
               return;
             }
 
-            // If profile doesn't exist, sign out and show error
+            // If profile doesn't exist, try to create one automatically
             if (!profile) {
               console.error('Profile not found for user:', session.user.id);
-              set({ 
+              const { error: createError } = await supabaseUntyped
+                .from('profiles')
+                .insert({
+                  id: session.user.id,
+                  email: session.user.email,
+                  role: session.user.user_metadata?.role || 'buyer',
+                  full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+                });
+
+              if (createError) {
+                console.error('Could not auto-create profile:', createError);
+                set({ isLoading: false, error: 'User profile not found. Please contact support.' });
+                await supabase.auth.signOut();
+                return;
+              }
+
+              // Re-fetch the newly created profile
+              const { data: retryProfile } = await supabaseUntyped
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              if (!retryProfile) {
+                set({ isLoading: false, error: 'User profile not found. Please contact support.' });
+                await supabase.auth.signOut();
+                return;
+              }
+
+              // Continue with the newly created profile
+              const profileData = retryProfile as any;
+              set({
+                user: {
+                  id: profileData.id,
+                  email: profileData.email || session.user.email || '',
+                  role: profileData.role,
+                  name: profileData.business_name || profileData.full_name || profileData.name || 'User',
+                  avatar_url: profileData.avatar_url,
+                  platform_preference: profileData.platform_preference || 'marketplace',
+                  platform_selected_at: profileData.platform_selected_at,
+                },
+                supabaseUser: session.user,
+                isAuthenticated: true,
                 isLoading: false,
-                error: 'User profile not found. Please contact support.'
               });
-              // Sign out to prevent infinite loops
-              await supabase.auth.signOut();
               return;
             }
 
@@ -108,8 +147,8 @@ export const useAuthStore = create<AuthState>()(
                 id: profileData.id,
                 email: profileData.email || session.user.email || '',
                 role: profileData.role,
-                name: profileData.business_name || profileData.name || 'User', // Try business_name first, fallback to name
-                avatar_url: profileData.avatar_url, // Include avatar_url
+                name: profileData.business_name || profileData.full_name || profileData.name || 'User',
+                avatar_url: profileData.avatar_url,
                 platform_preference: profileData.platform_preference || 'marketplace',
                 platform_selected_at: profileData.platform_selected_at,
               };

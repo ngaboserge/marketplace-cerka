@@ -197,6 +197,7 @@ export default function BuyerSearch() {
       image: listing.photos?.[0] || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400&h=400&fit=crop',
       images: listing.photos?.slice(1) || [],
       supplier: {
+        id: listing.supplier_id,
         name: listing.supplier?.business_name || listing.supplier?.full_name || listing.supplier?.name || 'Business Supplier',
         verified: listing.supplier?.is_verified_supplier || false,
         rating: listing.supplier?.average_rating || 4.2,

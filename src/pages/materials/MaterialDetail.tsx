@@ -502,10 +502,16 @@ export default function MaterialDetail() {
                         Message Seller
                       </button>
                       <button
+                        onClick={() => navigate(`/suppliers/profile/${listing.supplier_id}`)}
+                        className="btn-secondary"
+                      >
+                        View Supplier
+                      </button>
+                      <button
                         onClick={() => navigate(`/buyers/listing/${listing.id}`)}
                         className="btn-secondary"
                       >
-                        View Full Details
+                        View Details
                       </button>
                     </div>
                   </div>

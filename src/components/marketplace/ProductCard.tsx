@@ -14,6 +14,7 @@ interface ProductCardProps {
   image: string;
   images?: string[];
   supplier: {
+    id?: string;
     name: string;
     verified: boolean;
     rating: number;
@@ -359,9 +360,15 @@ export function ProductCard({
           <div className="border-t border-neutral-100 pt-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="product-supplier truncate">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (supplier?.id) navigate(`/suppliers/profile/${supplier.id}`);
+                  }}
+                  className="product-supplier truncate hover:text-orange-600 transition-colors text-left"
+                >
                   {supplier.name}
-                </span>
+                </button>
                 {supplier.verified && (
                   <div className="flex items-center gap-1 text-blue-600">
                     <Shield className="w-3 h-3" />
