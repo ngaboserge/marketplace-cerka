@@ -1,64 +1,83 @@
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { useAuthStore } from '@/store';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { ToastContainer, MobileNav } from '@/components/ui';
 import { FloatingActionButton } from '@/components/FloatingActionButton';
 import InstallAppButton from '@/components/InstallAppButton';
 
-// Public pages
+// Always-loaded pages (critical path)
 import { Landing } from '@/pages/Landing';
-import { NewLanding } from '@/pages/NewLanding';
-import Home from '@/pages/HomeSimplified';
-import MarketplaceHome from '@/pages/MarketplaceHome';
-import MarketplacePlatform from '@/pages/MarketplacePlatform';
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
-import { HelpCenter } from '@/pages/HelpCenter';
-import { TermsOfService } from '@/pages/TermsOfService';
-import { PrivacyPolicy } from '@/pages/PrivacyPolicy';
-
-// Shared pages
-import { Messages } from '@/pages/Messages';
-import { Notifications } from '@/pages/Notifications';
-
-// Admin pages
-import AdminDashboard from '@/pages/admin/Dashboard';
-import AdminSupport from '@/pages/admin/Support';
-import MarketplaceUsers from '@/pages/admin/MarketplaceUsers';
+import MarketplaceHome from '@/pages/MarketplaceHome';
 import { AdminFloatingButton } from '@/components/AdminFloatingButton';
 import { Chatbot } from '@/components/Chatbot';
 
+// Lazy-loaded pages (code split for performance)
+const NewLanding = lazy(() => import('@/pages/NewLanding').then(m => ({ default: m.NewLanding })));
+const Home = lazy(() => import('@/pages/HomeSimplified'));
+const MarketplacePlatform = lazy(() => import('@/pages/MarketplacePlatform'));
+const HelpCenter = lazy(() => import('@/pages/HelpCenter').then(m => ({ default: m.HelpCenter })));
+const TermsOfService = lazy(() => import('@/pages/TermsOfService').then(m => ({ default: m.TermsOfService })));
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const Messages = lazy(() => import('@/pages/Messages').then(m => ({ default: m.Messages })));
+const Notifications = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.Notifications })));
+
+// Admin pages
+const AdminDashboard = lazy(() => import('@/pages/admin/Dashboard'));
+const AdminSupport = lazy(() => import('@/pages/admin/Support'));
+const MarketplaceUsers = lazy(() => import('@/pages/admin/MarketplaceUsers'));
+const PriceModeration = lazy(() => import('@/pages/admin/PriceModeration'));
+const SupplierVerification = lazy(() => import('@/pages/admin/SupplierVerification'));
+const MaterialsModeration = lazy(() => import('@/pages/admin/MaterialsModeration'));
+const IntelligenceMonitor = lazy(() => import('@/pages/admin/IntelligenceMonitor'));
+const AdminQuoteRequests = lazy(() => import('@/pages/admin/QuoteRequests'));
+
 // Material Marketplace pages
-import PriceSubmit from '@/pages/materials/PriceSubmit';
-import PriceIndex from '@/pages/materials/PriceIndex';
-import PriceTrends from '@/pages/materials/PriceTrends';
-import MaterialDetail from '@/pages/materials/MaterialDetail';
-import MySubmissions from '@/pages/materials/MySubmissions';
-import BuyerSearch from '@/pages/buyers/BuyerSearch';
-import ListingDetail from '@/pages/buyers/ListingDetail';
-import QuoteHistory from '@/pages/buyers/QuoteHistory';
-import { Wishlist } from '@/pages/buyers/Wishlist';
-import { Cart } from '@/pages/buyers/Cart';
-import MyListings from '@/pages/suppliers/MyListings';
-import CreateListing from '@/pages/suppliers/CreateListing';
-import { EditListing } from '@/pages/suppliers/EditListing';
-import { ListingAnalytics } from '@/pages/suppliers/ListingAnalytics';
-import PriceModeration from '@/pages/admin/PriceModeration';
-import SupplierVerification from '@/pages/admin/SupplierVerification';
-import MaterialsModeration from '@/pages/admin/MaterialsModeration';
-import IntelligenceMonitor from '@/pages/admin/IntelligenceMonitor';
-import QuoteRequests from '@/pages/admin/QuoteRequests';
+const PriceSubmit = lazy(() => import('@/pages/materials/PriceSubmit'));
+const PriceIndex = lazy(() => import('@/pages/materials/PriceIndex'));
+const PriceTrends = lazy(() => import('@/pages/materials/PriceTrends'));
+const MaterialDetail = lazy(() => import('@/pages/materials/MaterialDetail'));
+const MySubmissions = lazy(() => import('@/pages/materials/MySubmissions'));
+const RegionalPriceIndex = lazy(() => import('@/pages/materials/RegionalPriceIndex'));
 
-// Multi-Sector Marketplace pages
-import AllCategories from '@/pages/marketplace/AllCategories';
-import SectorBrowse from '@/pages/marketplace/SectorBrowse';
-import { MarketplaceProfile } from '@/pages/marketplace/MarketplaceProfile';
-import { ProductDetail } from '@/pages/marketplace/ProductDetail';
+// Buyer pages
+const BuyerSearch = lazy(() => import('@/pages/buyers/BuyerSearch'));
+const ListingDetail = lazy(() => import('@/pages/buyers/ListingDetail'));
+const QuoteHistory = lazy(() => import('@/pages/buyers/QuoteHistory'));
+const Wishlist = lazy(() => import('@/pages/buyers/Wishlist').then(m => ({ default: m.Wishlist })));
+const Cart = lazy(() => import('@/pages/buyers/Cart').then(m => ({ default: m.Cart })));
 
-import SupplierQuoteRequests from '@/pages/suppliers/QuoteRequests';
-import SupplierProfile from '@/pages/suppliers/SupplierProfile';
-import RegionalPriceIndex from '@/pages/materials/RegionalPriceIndex';
-import InsightsFeed from '@/pages/intelligence/InsightsFeed';
+// Supplier pages
+const MyListings = lazy(() => import('@/pages/suppliers/MyListings'));
+const CreateListing = lazy(() => import('@/pages/suppliers/CreateListing'));
+const EditListing = lazy(() => import('@/pages/suppliers/EditListing').then(m => ({ default: m.EditListing })));
+const ListingAnalytics = lazy(() => import('@/pages/suppliers/ListingAnalytics').then(m => ({ default: m.ListingAnalytics })));
+const SupplierQuoteRequests = lazy(() => import('@/pages/suppliers/QuoteRequests'));
+const SupplierProfile = lazy(() => import('@/pages/suppliers/SupplierProfile'));
+
+// Marketplace pages
+const AllCategories = lazy(() => import('@/pages/marketplace/AllCategories'));
+const SectorBrowse = lazy(() => import('@/pages/marketplace/SectorBrowse'));
+const MarketplaceProfile = lazy(() => import('@/pages/marketplace/MarketplaceProfile').then(m => ({ default: m.MarketplaceProfile })));
+const ProductDetail = lazy(() => import('@/pages/marketplace/ProductDetail').then(m => ({ default: m.ProductDetail })));
+
+// Intelligence pages
+const SignalsDashboard = lazy(() => import('@/pages/intelligence/SignalsDashboard'));
+const InsightsFeed = lazy(() => import('@/pages/intelligence/InsightsFeed'));
+
+// Loading fallback
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+        <p className="text-sm text-neutral-500">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: 'buyer' | 'supplier' | 'contributor' | 'admin' }) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
@@ -119,7 +138,8 @@ export default function App() {
       }}
     >
       <DarkModeWrapper>
-        <Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -147,7 +167,7 @@ export default function App() {
           <Route path="/admin/supplier-verification" element={<ProtectedRoute role="admin"><SupplierVerification /></ProtectedRoute>} />
           <Route path="/admin/materials" element={<ProtectedRoute role="admin"><MaterialsModeration /></ProtectedRoute>} />
           <Route path="/admin/intelligence" element={<ProtectedRoute role="admin"><IntelligenceMonitor /></ProtectedRoute>} />
-          <Route path="/admin/quotes" element={<ProtectedRoute role="admin"><QuoteRequests /></ProtectedRoute>} />
+          <Route path="/admin/quotes" element={<ProtectedRoute role="admin"><AdminQuoteRequests /></ProtectedRoute>} />
           
           {/* Material Marketplace routes */}
           <Route path="/materials/dashboard" element={<Navigate to="/materials/trends" replace />} />
@@ -191,6 +211,7 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
         <AdminFloatingButton />
         <FloatingActionButton />
         <Chatbot />
