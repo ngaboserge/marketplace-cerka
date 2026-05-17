@@ -136,13 +136,22 @@ export default function MyListings() {
                 Manage your listings and grow your business
               </p>
             </div>
-            <button 
-              onClick={() => navigate('/suppliers/create')}
-              className="btn-primary px-6 py-3 text-lg font-semibold flex items-center gap-2 w-fit"
-            >
-              <Plus className="w-5 h-5" />
-              Create New Listing
-            </button>
+            <div className="flex gap-3 flex-wrap">
+              <button 
+                onClick={() => navigate('/suppliers/quotes')}
+                className="btn-secondary px-5 py-3 font-semibold flex items-center gap-2 w-fit"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Quote Requests
+              </button>
+              <button 
+                onClick={() => navigate('/suppliers/create')}
+                className="btn-primary px-6 py-3 text-lg font-semibold flex items-center gap-2 w-fit"
+              >
+                <Plus className="w-5 h-5" />
+                Create New Listing
+              </button>
+            </div>
           </div>
         </div>
 

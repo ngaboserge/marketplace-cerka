@@ -4,6 +4,7 @@ import { Layout } from '@/components/layout';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore, useWishlistStore, useCartStore } from '@/store';
 import type { SupplierListing } from '@/types/materials.types';
+import { QuoteRequestModal } from '@/components/marketplace/QuoteRequestModal';
 import { 
   Heart, ShoppingCart, Star, Shield, Clock, MapPin, 
   ArrowLeft, Share2, MessageCircle, Plus, Minus, Package,
@@ -19,6 +20,7 @@ export function ProductDetail() {
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
   // Check if item is in wishlist
@@ -379,10 +381,19 @@ export function ProductDetail() {
                 {/* Contact Supplier */}
                 <button
                   onClick={handleContactSupplier}
-                  className="btn-secondary w-full flex items-center justify-center gap-2 mb-6"
+                  className="btn-secondary w-full flex items-center justify-center gap-2 mb-3"
                 >
                   <MessageCircle className="w-5 h-5" />
                   Contact Supplier
+                </button>
+
+                {/* Request Quote */}
+                <button
+                  onClick={() => setShowQuoteModal(true)}
+                  className="btn-primary w-full flex items-center justify-center gap-2 mb-6"
+                >
+                  <Package className="w-5 h-5" />
+                  Request a Quote
                 </button>
 
                 {/* Stock Status */}
@@ -511,6 +522,24 @@ export function ProductDetail() {
           </button>
         </div>
       </div>
+
+      {/* Quote Request Modal */}
+      {showQuoteModal && product && (
+        <QuoteRequestModal
+          listing={{
+            id: id!,
+            title: product.title,
+            price: product.price.min,
+            supplier_id: product.supplier.id,
+            supplier_name: product.supplier.name,
+            min_quantity: product.minOrder.quantity,
+            unit: product.price.unit,
+            location: product.supplier.location,
+            image: product.images?.[0],
+          }}
+          onClose={() => setShowQuoteModal(false)}
+        />
+      )}
     </Layout>
   );
 }

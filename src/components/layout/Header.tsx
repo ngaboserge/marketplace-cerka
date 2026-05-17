@@ -19,7 +19,7 @@ export function Header() {
   const { user, logout } = useAuthStore();
   const { items: wishlistItems, fetchWishlist } = useWishlistStore();
   const { items: cartItems, fetchCart } = useCartStore();
-  const { notifications, unreadCount, fetchNotifications } = useNotificationsStore();
+  const { notifications: _notifications, unreadCount, fetchNotifications } = useNotificationsStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
@@ -262,6 +262,14 @@ export function Header() {
                           >
                             Sell on Cerka
                           </Link>
+                          {user.role === 'supplier' && (
+                            <Link
+                              to="/suppliers/quotes"
+                              className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                            >
+                              Quote Requests
+                            </Link>
+                          )}
                           <Link
                             to="/materials/trends"
                             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"

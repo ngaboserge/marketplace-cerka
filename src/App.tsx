@@ -55,6 +55,7 @@ import SectorBrowse from '@/pages/marketplace/SectorBrowse';
 import { MarketplaceProfile } from '@/pages/marketplace/MarketplaceProfile';
 import { ProductDetail } from '@/pages/marketplace/ProductDetail';
 
+import SupplierQuoteRequests from '@/pages/suppliers/QuoteRequests';
 import SupplierProfile from '@/pages/suppliers/SupplierProfile';
 import RegionalPriceIndex from '@/pages/materials/RegionalPriceIndex';
 import InsightsFeed from '@/pages/intelligence/InsightsFeed';
@@ -169,6 +170,7 @@ export default function App() {
           <Route path="/suppliers/create" element={<ProtectedRoute role="supplier"><CreateListing /></ProtectedRoute>} />
           <Route path="/suppliers/edit/:id" element={<ProtectedRoute role="supplier"><EditListing /></ProtectedRoute>} />
           <Route path="/suppliers/analytics/:id" element={<ProtectedRoute role="supplier"><ListingAnalytics /></ProtectedRoute>} />
+          <Route path="/suppliers/quotes" element={<ProtectedRoute role="supplier"><SupplierQuoteRequests /></ProtectedRoute>} />
           
           {/* Multi-Sector Marketplace routes */}
           <Route path="/marketplace/categories" element={<ProtectedRoute><AllCategories /></ProtectedRoute>} />
