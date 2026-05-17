@@ -41,7 +41,8 @@ async function enrichRequests(requests: any[]): Promise<any[]> {
         buyer = data;
       }
 
-      return { ...req, listing, supplier, buyer };
+      // Normalize: expose 'notes' as alias for 'message' for UI compatibility
+      return { ...req, listing, supplier, buyer, notes: req.message };
     })
   );
 }
@@ -55,10 +56,28 @@ export const quoteRequestsService = {
     delivery_location: string;
     notes?: string;
   }): Promise<QuoteRequest> {
-    // Insert the quote request (simple insert, no joins)
+    // First fetch the listing to get material_id (required by the table)
+    const { data: listing, error: listingError } = await supabase
+      .from('supplier_listings')
+      .select('material_id')
+      .eq('id', data.listing_id)
+      .single();
+
+    if (listingError || !listing) throw new Error('Listing not found');
+
+    // Insert the quote request with all required fields
     const { data: quoteRequest, error } = await supabase
       .from('quote_requests')
-      .insert({ ...data, status: 'pending' })
+      .insert({
+        buyer_id: data.buyer_id,
+        supplier_id: data.supplier_id,
+        listing_id: data.listing_id,
+        material_id: listing.material_id,
+        quantity: data.quantity,
+        delivery_location: data.delivery_location,
+        message: data.notes || null,
+        status: 'pending'
+      })
       .select('*')
       .single();
 
@@ -107,7 +126,7 @@ export const quoteRequestsService = {
   async updateRequestStatus(id: string, status: QuoteRequest['status']): Promise<QuoteRequest> {
     const { data, error } = await supabase
       .from('quote_requests')
-      .update({ status })
+      .update({ status, responded_at: new Date().toISOString() })
       .eq('id', id)
       .select('*')
       .single();

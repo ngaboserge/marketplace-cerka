@@ -17,23 +17,29 @@ CREATE TABLE IF NOT EXISTS quote_requests (
 -- Add RLS policies
 ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then recreate
+DROP POLICY IF EXISTS "Buyers can view own quote requests" ON quote_requests;
+DROP POLICY IF EXISTS "Suppliers can view their quote requests" ON quote_requests;
+DROP POLICY IF EXISTS "Buyers can create quote requests" ON quote_requests;
+DROP POLICY IF EXISTS "Parties can update quote request status" ON quote_requests;
+
 -- Buyers can see their own requests
-CREATE POLICY IF NOT EXISTS "Buyers can view own quote requests"
+CREATE POLICY "Buyers can view own quote requests"
   ON quote_requests FOR SELECT
   USING (auth.uid() = buyer_id);
 
 -- Suppliers can see requests sent to them
-CREATE POLICY IF NOT EXISTS "Suppliers can view their quote requests"
+CREATE POLICY "Suppliers can view their quote requests"
   ON quote_requests FOR SELECT
   USING (auth.uid() = supplier_id);
 
 -- Buyers can create quote requests
-CREATE POLICY IF NOT EXISTS "Buyers can create quote requests"
+CREATE POLICY "Buyers can create quote requests"
   ON quote_requests FOR INSERT
   WITH CHECK (auth.uid() = buyer_id);
 
 -- Both buyer and supplier can update status
-CREATE POLICY IF NOT EXISTS "Parties can update quote request status"
+CREATE POLICY "Parties can update quote request status"
   ON quote_requests FOR UPDATE
   USING (auth.uid() = buyer_id OR auth.uid() = supplier_id);
 
