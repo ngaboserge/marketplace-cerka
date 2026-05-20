@@ -56,6 +56,7 @@ const EditListing = lazy(() => import('@/pages/suppliers/EditListing').then(m =>
 const ListingAnalytics = lazy(() => import('@/pages/suppliers/ListingAnalytics').then(m => ({ default: m.ListingAnalytics })));
 const SupplierQuoteRequests = lazy(() => import('@/pages/suppliers/QuoteRequests'));
 const SupplierProfile = lazy(() => import('@/pages/suppliers/SupplierProfile'));
+const CostAnalytics = lazy(() => import('@/pages/suppliers/CostAnalytics'));
 
 // Marketplace pages
 const AllCategories = lazy(() => import('@/pages/marketplace/AllCategories'));
@@ -190,6 +191,7 @@ export default function App() {
           <Route path="/suppliers/create" element={<ProtectedRoute role="supplier"><CreateListing /></ProtectedRoute>} />
           <Route path="/suppliers/edit/:id" element={<ProtectedRoute role="supplier"><EditListing /></ProtectedRoute>} />
           <Route path="/suppliers/analytics/:id" element={<ProtectedRoute role="supplier"><ListingAnalytics /></ProtectedRoute>} />
+          <Route path="/suppliers/costs/:id" element={<ProtectedRoute role="supplier"><CostAnalytics /></ProtectedRoute>} />
           <Route path="/suppliers/quotes" element={<ProtectedRoute role="supplier"><SupplierQuoteRequests /></ProtectedRoute>} />
           
           {/* Multi-Sector Marketplace routes */}

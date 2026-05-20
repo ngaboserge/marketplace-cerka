@@ -358,6 +358,13 @@ export default function MyListings() {
                           <BarChart className="w-4 h-4" />
                           Analytics
                         </button>
+                        <button
+                          onClick={() => navigate(`/suppliers/costs/${listing.id}`)}
+                          className="btn-secondary text-sm px-4 py-2 flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                          Cost Breakdown
+                        </button>
                         {listing.status === 'active' ? (
                           <button
                             onClick={() => setDeleteModal(listing.id)}
